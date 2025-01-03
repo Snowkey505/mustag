@@ -68,7 +68,7 @@ constructor(@ApplicationContext val context: Context) {
                     while (cursor.moveToNext()) {
                         val displayName = getString(displayNameColumn)
                         val id = getLong(idColumn)
-                        val artist = getString(artistColumn)
+                        val artists = getString(artistColumn).split(";")
                         val data = getString(dataColumn)
                         val duration = getInt(durationColumn)
                         val title = getString(titleColumn)
@@ -78,20 +78,12 @@ constructor(@ApplicationContext val context: Context) {
                         )
 
                         audioList += Audio(
-                            uri, displayName, id, artist, data, duration, title
+                            uri, displayName, id, artists, data, duration, title
                         )
-
-
                     }
-
                 }
             }
-
-
         }
-
         return audioList
     }
-
-
 }

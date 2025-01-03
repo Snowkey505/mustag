@@ -129,7 +129,7 @@ fun AudioItem(
                     maxLines = 1
                 )
                 Text(
-                    text = audio.artist,
+                    text = audio.artistNames.joinToString(", "),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Clip
@@ -253,7 +253,7 @@ fun SongInfo(
         )
         Spacer(modifier = Modifier.size(8.dp))
         Text(
-            text = audio.artist,
+            text = audio.artistNames.joinToString(", "),
             fontWeight = FontWeight.ExtraLight,
             style = MaterialTheme.typography.bodyMedium,
             overflow = TextOverflow.Clip,
@@ -303,10 +303,10 @@ fun HomeScreenPrev() {
             onProgress = {},
             isAudioPlaying = true,
             audiList = listOf(
-                Audio("".toUri(), "Nightcall", 0L, "Kavinsky", "", 0, "Nightcall"),
-                Audio("".toUri(), "Title Two", 0L, "Unknown", "", 0, "Title two"),
+                Audio("".toUri(), "Nightcall", 0L, listOf("Kavinsky"), "", 0, "Nightcall"),
+                Audio("".toUri(), "Title Two", 0L, listOf("Kavinsky", "Daft Punk"), "", 0, "Title two"),
             ),
-            currentPlayingAudio = Audio("".toUri(), "Nightcall", 0L, "Kavinsky", "", 0, "Nightcall"),
+            currentPlayingAudio = Audio("".toUri(), "Nightcall", 0L, listOf("Kavinsky"), "", 0, "Nightcall"),
             onStart = {},
             onItemClick = {},
             onNext = {}

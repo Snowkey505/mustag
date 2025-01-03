@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 private val audioDummy = Audio(
-    "".toUri(), "", 0L, "", "", 0, ""
+    "".toUri(), "", 0L, listOf(""), "", 0, ""
 )
 
 @HiltViewModel
@@ -69,31 +69,31 @@ class AudioViewModel @Inject constructor(
         }
     }
 
-//    private fun loadAudioData() {
-//        viewModelScope.launch {
-//            val songsFromDb = repository.getAllSongs()
-//            audioList = songsFromDb.map { song ->
-//                Audio(
-//                    uri = "".toUri(),
-//                    id = song.id_song,
-//                    title = song.title,
-//                    displayName = song.title,
-//                    artist = "",
-//                    duration = 0,
-//                    data = ""
-//                )
-//            }
-//            setMediaItems()
-//        }
-//    }
-
     private fun loadAudioData() {
         viewModelScope.launch {
-            val audio = repository.getAudioData()
-            audioList = audio
+            val songsFromDb = repository.getAllSongs()
+            audioList = songsFromDb.map { song ->
+                Audio(
+                    uri = song.uri,
+                    id = song.id_song,
+                    title = song.title,
+                    displayName = song.displayName,
+                    artistNames = repository.getArtistsNamesBySong(song.id_song),
+                    duration = song.duration,
+                    data = ""
+                )
+            }
             setMediaItems()
         }
     }
+
+//    private fun loadAudioData() {
+//        viewModelScope.launch {
+//            val audio = repository.getAudioData()
+//            audioList = audio
+//            setMediaItems()
+//        }
+//    }
 
 
     private fun setMediaItems() {
@@ -102,7 +102,7 @@ class AudioViewModel @Inject constructor(
                 .setUri(audio.uri)
                 .setMediaMetadata(
                     MediaMetadata.Builder()
-                        .setAlbumArtist(audio.artist)
+                        .setAlbumArtist(audio.artistNames.joinToString(";"))
                         .setDisplayTitle(audio.title)
                         .setSubtitle(audio.displayName)
                         .build()
