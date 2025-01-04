@@ -1,8 +1,9 @@
 package com.example.mustag.ui.audio
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,15 +12,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsEndWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -34,59 +37,66 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
-import com.example.mustag.ui.theme.MusTagTheme
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.example.mustag.Navigation
 import com.example.mustag.data.local.model.Audio
 import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
-    progress: Float,
-    onProgress: (Float) -> Unit,
-    isAudioPlaying: Boolean,
-    currentPlayingAudio: Audio,
-    audiList: List<Audio>,
-    onStart: () -> Unit,
-    onItemClick: (Int) -> Unit,
-    onNext: () -> Unit,
-) {
+fun SongsScreen(navController: NavController, viewModel: AudioViewModel = hiltViewModel()) {
+    val progress by viewModel.progress.collectAsState()
+    val isAudioPlaying by viewModel.isPlaying.collectAsState()
+    val audioList by viewModel.audioList.collectAsState()
+    val currentPlayingAudio by viewModel.currentSelectedAudio.collectAsState()
+
     Scaffold(
+        topBar = { TopPanel(navController) },
         bottomBar = {
             BottomBarPlayer(
                 progress = progress,
-                onProgress = onProgress,
+                onProgress = { newProgress ->
+                    viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
+                },
                 audio = currentPlayingAudio,
-                onStart = onStart,
-                onNext = onNext,
+                onStart = {
+                    viewModel.onUiEvents(AudioUIEvents.PlayPause)
+                },
+                onNext = {
+                    viewModel.onUiEvents(AudioUIEvents.SeekToNext)
+                },
                 isAudioPlaying = isAudioPlaying
             )
         }
-    ) {
+    ) { paddingValues ->
         LazyColumn(
-            contentPadding = it
+            contentPadding = paddingValues
         ) {
-            itemsIndexed(audiList) { index, audio ->
+            itemsIndexed(audioList) { index, audio ->
                 AudioItem(
                     audio = audio,
                     number = index + 1,
-                    onItemClick = { onItemClick(index) }
+                    onItemClick = {
+                        viewModel.onUiEvents(AudioUIEvents.SelectedAudioChange(index))
+                    }
                 )
             }
         }
     }
-
 }
 
 @Composable
@@ -109,11 +119,27 @@ fun AudioItem(
         ) {
             Box (modifier = Modifier.width(40.dp)){
                 Column (horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = number.toString(),
-                        textAlign = TextAlign.Center
-                    )
+                    audio.artwork?.let { artworkBytes ->
+                        val bitmap = BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes.size)
+                        val imageBitmap = bitmap.asImageBitmap()
+
+                        Image(
+                            bitmap = imageBitmap,
+                            contentDescription = "cover",
+                            modifier = Modifier
+                                .fillMaxWidth(1f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentScale = ContentScale.FillBounds
+                        )
+                    } ?: PlayerIconItem(
+                        icon = Icons.Default.MusicNote,
+                        borderStroke = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {}
                 }
             }
             Column(
@@ -125,14 +151,14 @@ fun AudioItem(
                 Text(
                     text = audio.title,
                     style = MaterialTheme.typography.titleMedium,
-                    overflow = TextOverflow.Clip,
+                    overflow = TextOverflow.Ellipsis,
                     maxLines = 1
                 )
                 Text(
                     text = audio.artistNames.joinToString(", "),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
-                    overflow = TextOverflow.Clip
+                    overflow = TextOverflow.Ellipsis
                 )
 
             }
@@ -152,6 +178,46 @@ private fun timeStampToDuration(position: Long): String {
     val remainingSeconds = totalSecond - (minutes * 60)
     return if (position < 0) "--:--"
     else "%d:%02d".format(minutes, remainingSeconds)
+}
+
+
+@Composable
+private fun TopPanel(navController: NavController) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(color = MaterialTheme.colorScheme.background)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            Box(
+                modifier = Modifier
+                    .background(color = Color.White, shape = RoundedCornerShape(10.dp))
+                    .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+            ) {
+                Text(
+                    text = "Песни",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black
+                )
+            }
+        }
+        item {
+            Box(
+                modifier = Modifier
+                    .background(color = Color.DarkGray, shape = RoundedCornerShape(10.dp))
+                    .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+                    .clickable { navController.navigate(Navigation.ALBUMS.toString()) }
+            ) {
+                Text(
+                    text = "Альбомы",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -233,10 +299,24 @@ fun SongInfo(
     audio: Audio,
 ) {
     Row(
-        modifier = modifier.padding(start = 4.dp),
+        modifier = modifier.padding(start = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PlayerIconItem(
+        audio.artwork?.let { artworkBytes ->
+            val bitmap = BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes.size)
+            val imageBitmap = bitmap.asImageBitmap()
+
+            Image(
+                bitmap = imageBitmap,
+                contentDescription = "cover",
+                modifier = Modifier
+                    .width(30.dp)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                contentScale = ContentScale.FillBounds
+            )
+        } ?: PlayerIconItem(
             icon = Icons.Default.MusicNote,
             borderStroke = BorderStroke(
                 width = 1.dp,
@@ -294,22 +374,10 @@ fun PlayerIconItem(
     }
 }
 
-@Preview(showSystemUi = true)
-@Composable
-fun HomeScreenPrev() {
-    MusTagTheme(darkTheme = true) {
-        HomeScreen(
-            progress = 50f,
-            onProgress = {},
-            isAudioPlaying = true,
-            audiList = listOf(
-                Audio("".toUri(), "Nightcall", 0L, listOf("Kavinsky"), "", 0, "Nightcall", "", null),
-                Audio("".toUri(), "Title Two", 0L, listOf("Kavinsky", "Daft Punk"), "", 0, "Title two", "", null),
-            ),
-            currentPlayingAudio = Audio("".toUri(), "Nightcall", 0L, listOf("Kavinsky"), "", 0, "Nightcall", "", null),
-            onStart = {},
-            onItemClick = {},
-            onNext = {}
-        )
-    }
-}
+//@Preview(showSystemUi = true)
+//@Composable
+//fun HomeScreenPrev() {
+//    MusTagTheme(darkTheme = true) {
+//        HomeScreen()
+//    }
+//}

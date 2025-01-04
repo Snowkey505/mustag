@@ -1,8 +1,10 @@
 package com.example.mustag.player.service
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Build
 import androidx.media3.common.Player
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -18,6 +20,9 @@ class JetAudioService : MediaSessionService() {
     @Inject
     lateinit var notificationManager: JetAudioNotificationManager
 
+    @Inject
+    lateinit var jetAudioServiceHandler: JetAudioServiceHandler
+
     @UnstableApi
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -26,6 +31,10 @@ class JetAudioService : MediaSessionService() {
                 mediaSessionService = this
             )
         }
+
+        // Восстановление состояния плеера
+        jetAudioServiceHandler.restorePlayerState()
+
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -34,6 +43,10 @@ class JetAudioService : MediaSessionService() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        // Сохраняем состояние плеера при его остановке
+        jetAudioServiceHandler.savePlayerState()
+
         mediaSession.apply {
             release()
             if (player.playbackState != Player.STATE_IDLE) {

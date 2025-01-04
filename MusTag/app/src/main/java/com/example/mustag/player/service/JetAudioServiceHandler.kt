@@ -1,5 +1,6 @@
 package com.example.mustag.player.service
 
+import android.content.SharedPreferences
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -15,9 +16,10 @@ import javax.inject.Inject
 
 class JetAudioServiceHandler @Inject constructor(
     private val exoPlayer: ExoPlayer,
+    private val sharedPreferences: SharedPreferences
 ) : Player.Listener {
-    private val _audioState: MutableStateFlow<JetAudioState> =
-        MutableStateFlow(JetAudioState.Initial)
+
+    private val _audioState: MutableStateFlow<JetAudioState> = MutableStateFlow(JetAudioState.Initial)
     val audioState: StateFlow<JetAudioState> = _audioState.asStateFlow()
 
     private var job: Job? = null
@@ -55,9 +57,7 @@ class JetAudioServiceHandler @Inject constructor(
 
                     else -> {
                         exoPlayer.seekToDefaultPosition(selectedAudioIndex)
-                        _audioState.value = JetAudioState.Playing(
-                            isPlaying = true
-                        )
+                        _audioState.value = JetAudioState.Playing(isPlaying = true)
                         exoPlayer.playWhenReady = true
                         startProgressUpdate()
                     }
@@ -66,26 +66,22 @@ class JetAudioServiceHandler @Inject constructor(
 
             PlayerEvent.Stop -> stopProgressUpdate()
             is PlayerEvent.UpdateProgress -> {
-                exoPlayer.seekTo(
-                    (exoPlayer.duration * playerEvent.newProgress).toLong()
-                )
+                exoPlayer.seekTo((exoPlayer.duration * playerEvent.newProgress).toLong())
             }
         }
     }
 
     override fun onPlaybackStateChanged(playbackState: Int) {
         when (playbackState) {
-            ExoPlayer.STATE_BUFFERING -> _audioState.value =
-                JetAudioState.Buffering(exoPlayer.currentPosition)
-
-            ExoPlayer.STATE_READY -> _audioState.value =
-                JetAudioState.Ready(exoPlayer.duration)
+            ExoPlayer.STATE_BUFFERING -> _audioState.value = JetAudioState.Buffering(exoPlayer.currentPosition)
+            ExoPlayer.STATE_READY -> _audioState.value = JetAudioState.Ready(exoPlayer.duration)
         }
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         _audioState.value = JetAudioState.Playing(isPlaying = isPlaying)
         _audioState.value = JetAudioState.CurrentPlaying(exoPlayer.currentMediaItemIndex)
+
         if (isPlaying) {
             GlobalScope.launch(Dispatchers.Main) {
                 startProgressUpdate()
@@ -101,9 +97,7 @@ class JetAudioServiceHandler @Inject constructor(
             stopProgressUpdate()
         } else {
             exoPlayer.play()
-            _audioState.value = JetAudioState.Playing(
-                isPlaying = true
-            )
+            _audioState.value = JetAudioState.Playing(isPlaying = true)
             startProgressUpdate()
         }
     }
@@ -120,8 +114,27 @@ class JetAudioServiceHandler @Inject constructor(
         _audioState.value = JetAudioState.Playing(isPlaying = false)
     }
 
+    // Сохранение состояния
+    fun savePlayerState() {
+        val currentTrackIndex = exoPlayer.currentMediaItemIndex
+        val playbackPosition = exoPlayer.currentPosition
+        sharedPreferences.edit()
+            .putInt("current_track_index", currentTrackIndex)
+            .putLong("playback_position", playbackPosition)
+            .apply()
+    }
 
+    // Восстановление состояния
+    fun restorePlayerState() {
+        val currentTrackIndex = sharedPreferences.getInt("current_track_index", 0)
+        val playbackPosition = sharedPreferences.getLong("playback_position", 0L)
+
+        exoPlayer.seekTo(currentTrackIndex, playbackPosition)
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = true
+    }
 }
+
 
 sealed class PlayerEvent {
     object PlayPause : PlayerEvent()

@@ -1,6 +1,7 @@
 package com.example.mustag.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
@@ -68,8 +69,17 @@ object MediaModule {
 
     @Provides
     @Singleton
-    fun provideServiceHandler(exoPlayer: ExoPlayer): JetAudioServiceHandler =
-        JetAudioServiceHandler(exoPlayer)
+    fun provideServiceHandler(
+        exoPlayer: ExoPlayer,
+        @ApplicationContext context: Context
+    ): JetAudioServiceHandler {
+        val sharedPreferences = context.getSharedPreferences("JetAudioPreferences", Context.MODE_PRIVATE)
+        return JetAudioServiceHandler(
+            exoPlayer,
+            sharedPreferences = sharedPreferences
+        )
+    }
+
 
 
 }
@@ -100,3 +110,12 @@ object DatabaseModule {
     fun provideArtistDao(database: AppDatabase): ArtistDao = database.artistDao()
 }
 
+@Module
+@InstallIn(SingletonComponent::class)
+object SharedPreferencesModule {
+    @Provides
+    @Singleton
+    fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
+        return context.getSharedPreferences("jet_audio_prefs", Context.MODE_PRIVATE)
+    }
+}

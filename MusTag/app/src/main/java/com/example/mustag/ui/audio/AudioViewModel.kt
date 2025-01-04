@@ -32,47 +32,36 @@ class AudioViewModel @Inject constructor(
     private val repository: AudioRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    var duration by savedStateHandle.saveable { mutableStateOf(0L) }
-    var progress by savedStateHandle.saveable { mutableStateOf(0f) }
-    var progressString by savedStateHandle.saveable { mutableStateOf("00:00") }
-    var isPlaying by savedStateHandle.saveable { mutableStateOf(false) }
-    var currentSelectedAudio by savedStateHandle.saveable { mutableStateOf(audioDummy) }
-    var audioList by savedStateHandle.saveable { mutableStateOf(listOf<Audio>()) }
+    private val _duration = MutableStateFlow(0L)
+    val duration: StateFlow<Long> = _duration
+
+    private val _progress = MutableStateFlow(0f)
+    val progress: StateFlow<Float> = _progress
+
+    private val _progressString = MutableStateFlow("00:00")
+    val progressString: StateFlow<String> = _progressString
+
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying
+
+    private val _currentSelectedAudio = MutableStateFlow(audioDummy)
+    val currentSelectedAudio: StateFlow<Audio> = _currentSelectedAudio
+
+    private val _audioList = MutableStateFlow(emptyList<Audio>())
+    val audioList: StateFlow<List<Audio>> = _audioList
 
     private val _uiState: MutableStateFlow<AudioUIState> = MutableStateFlow(AudioUIState.Initial)
     val uiState: StateFlow<AudioUIState> = _uiState.asStateFlow()
 
     init {
         loadAudioData()
-    }
-
-    init {
-        viewModelScope.launch {
-            audioServiceHandler.audioState.collectLatest { mediaState ->
-                when (mediaState) {
-                    JetAudioState.Initial -> _uiState.value = AudioUIState.Initial
-                    is JetAudioState.Buffering -> calculateProgressValue(mediaState.progress)
-                    is JetAudioState.Playing -> isPlaying = mediaState.isPlaying
-                    is JetAudioState.Progress -> calculateProgressValue(mediaState.progress)
-                    is JetAudioState.CurrentPlaying -> {
-                        currentSelectedAudio = audioList[mediaState.mediaItemIndex]
-                    }
-
-                    is JetAudioState.Ready -> {
-                        duration = mediaState.duration
-                        _uiState.value = AudioUIState.Ready
-                    }
-                }
-            }
-
-
-        }
+        observeAudioService()
     }
 
     private fun loadAudioData() {
         viewModelScope.launch {
             val songsFromDb = repository.getAllSongs()
-            audioList = songsFromDb.map { song ->
+            _audioList.value = songsFromDb.map { song ->
                 Audio(
                     uri = song.uri,
                     id = song.id_song,
@@ -89,9 +78,8 @@ class AudioViewModel @Inject constructor(
         }
     }
 
-
     private fun setMediaItems() {
-        audioList.map { audio ->
+        _audioList.value.map { audio ->
             MediaItem.Builder()
                 .setUri(audio.uri)
                 .setMediaMetadata(
@@ -107,11 +95,31 @@ class AudioViewModel @Inject constructor(
         }
     }
 
+    private fun observeAudioService() {
+        viewModelScope.launch {
+            audioServiceHandler.audioState.collectLatest { mediaState ->
+                when (mediaState) {
+                    JetAudioState.Initial -> _uiState.value = AudioUIState.Initial
+                    is JetAudioState.Buffering -> calculateProgressValue(mediaState.progress)
+                    is JetAudioState.Playing -> _isPlaying.value = mediaState.isPlaying
+                    is JetAudioState.Progress -> calculateProgressValue(mediaState.progress)
+                    is JetAudioState.CurrentPlaying -> {
+                        _currentSelectedAudio.value = _audioList.value[mediaState.mediaItemIndex]
+                    }
+                    is JetAudioState.Ready -> {
+                        _duration.value = mediaState.duration
+                        _uiState.value = AudioUIState.Ready
+                    }
+                }
+            }
+        }
+    }
+
     private fun calculateProgressValue(currentProgress: Long) {
-        progress =
-            if (currentProgress > 0) ((currentProgress.toFloat() / duration.toFloat()) * 100f)
+        _progress.value =
+            if (currentProgress > 0) ((currentProgress.toFloat() / _duration.value.toFloat()) * 100f)
             else 0f
-        progressString = formatDuration(currentProgress)
+        _progressString.value = formatDuration(currentProgress)
     }
 
     fun onUiEvents(uiEvents: AudioUIEvents) = viewModelScope.launch {
@@ -120,41 +128,33 @@ class AudioViewModel @Inject constructor(
             AudioUIEvents.Forward -> audioServiceHandler.onPlayerEvents(PlayerEvent.Forward)
             AudioUIEvents.SeekToNext -> audioServiceHandler.onPlayerEvents(PlayerEvent.SeekToNext)
             is AudioUIEvents.PlayPause -> {
-                audioServiceHandler.onPlayerEvents(
-                    PlayerEvent.PlayPause
-                )
+                audioServiceHandler.onPlayerEvents(PlayerEvent.PlayPause)
             }
-
             is AudioUIEvents.SeekTo -> {
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.SeekTo,
-                    seekPosition = ((duration * uiEvents.position) / 100f).toLong()
+                    seekPosition = ((_duration.value * uiEvents.position) / 100f).toLong()
                 )
             }
-
             is AudioUIEvents.SelectedAudioChange -> {
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.SelectedAudioChange,
                     selectedAudioIndex = uiEvents.index
                 )
             }
-
             is AudioUIEvents.UpdateProgress -> {
                 audioServiceHandler.onPlayerEvents(
-                    PlayerEvent.UpdateProgress(
-                        uiEvents.newProgress
-                    )
+                    PlayerEvent.UpdateProgress(uiEvents.newProgress)
                 )
-                progress = uiEvents.newProgress
+                _progress.value = uiEvents.newProgress
             }
         }
     }
 
-
-    fun formatDuration(duration: Long): String {
-        val minute = TimeUnit.MINUTES.convert(duration, TimeUnit.MILLISECONDS)
-        val seconds = (minute) - minute * TimeUnit.SECONDS.convert(1, TimeUnit.MINUTES)
-        return String.format("%02d:%02d", minute, seconds)
+    private fun formatDuration(duration: Long): String {
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(duration)
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(duration) % 60
+        return String.format("%02d:%02d", minutes, seconds)
     }
 
     override fun onCleared() {

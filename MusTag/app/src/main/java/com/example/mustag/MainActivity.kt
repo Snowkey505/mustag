@@ -1,46 +1,55 @@
 package com.example.mustag
 
+//import androidx.lifecycle.lifecycleScope
+//import com.example.mustag.data.db.AlbumDao
+//import com.example.mustag.data.db.SongDao
+//import com.example.mustag.data.local.ContentResolverHelper
+//import com.example.mustag.data.syncAudioData
 import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.mustag.data.db.AlbumDao
 import com.example.mustag.data.db.ArtistDao
 import com.example.mustag.data.db.SongDao
 import com.example.mustag.data.local.ContentResolverHelper
 import com.example.mustag.data.syncAudioData
-//import androidx.lifecycle.lifecycleScope
-//import com.example.mustag.data.db.AlbumDao
-//import com.example.mustag.data.db.SongDao
-//import com.example.mustag.data.local.ContentResolverHelper
-//import com.example.mustag.data.syncAudioData
+import com.example.mustag.player.service.JetAudioService
+import com.example.mustag.ui.albums.AlbumsScreen
+import com.example.mustag.ui.audio.SongsScreen
 import com.example.mustag.ui.theme.MusTagTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import dagger.hilt.android.AndroidEntryPoint
-import com.example.mustag.player.service.JetAudioService
-import com.example.mustag.ui.albums.AlbumsScreen
-import com.example.mustag.ui.audio.AudioViewModel
-import com.example.mustag.ui.audio.HomeScreen
-import com.example.mustag.ui.audio.AudioUIEvents
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+
+enum class Navigation(val route: String) {
+    SONGS("songs"),
+    ALBUMS("albums"),
+}
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val viewModel: AudioViewModel by viewModels()
+//    private val viewModel: AudioViewModel by viewModels()
     private var isServiceRunning = false
 
     @Inject lateinit var contentResolverHelper: ContentResolverHelper
@@ -52,10 +61,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Синхронизация данных
         lifecycleScope.launch {
             syncAudioData(contentResolverHelper, songDao, albumDao, artistDao)
         }
+
+        setStatusBarColor(
+            color = Color(0xFF0D0D0D),
+            darkIcons = false
+        )
 
         setContent {
             MusTagTheme {
@@ -82,24 +95,21 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    HomeScreen(
-                        progress = viewModel.progress,
-                        onProgress = { viewModel.onUiEvents(AudioUIEvents.SeekTo(it)) },
-                        isAudioPlaying = viewModel.isPlaying,
-                        audiList = viewModel.audioList,
-                        currentPlayingAudio = viewModel.currentSelectedAudio,
-                        onStart = {
-                            viewModel.onUiEvents(AudioUIEvents.PlayPause)
-                        },
-                        onItemClick = {
-                            viewModel.onUiEvents(AudioUIEvents.SelectedAudioChange(it))
-                            startService()
-                        },
-                        onNext = {
-                            viewModel.onUiEvents(AudioUIEvents.SeekToNext)
+
+                    val navController = rememberNavController()
+
+                    NavHost(
+                        navController = navController,
+                        startDestination = Navigation.SONGS.toString()
+                    ) {
+                        composable(Navigation.SONGS.toString()) {
+                            SongsScreen(navController)
                         }
-                    )
-//                    AlbumsScreen()
+
+                        composable(Navigation.ALBUMS.toString()) {
+                            AlbumsScreen(navController)
+                        }
+                    }
                 }
             }
         }
@@ -116,4 +126,9 @@ class MainActivity : ComponentActivity() {
             isServiceRunning = true
         }
     }
+}
+
+fun ComponentActivity.setStatusBarColor(color: Color, darkIcons: Boolean) {
+    window.statusBarColor = color.toArgb()
+    WindowCompat.getInsetsController(window, window.decorView)?.isAppearanceLightStatusBars = darkIcons
 }
