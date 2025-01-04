@@ -59,6 +59,10 @@ suspend fun syncAudioData(
                 ).also {
                     Log.e("SYNC", "Song inserted with ID: $it")
                 }
+
+                songDao.insertSongArtist(
+                    SongArtist(id_song = audio.id, id_artist = artistId)
+                )
             }
         } catch (e: Exception) {
             Log.e("SYNC", "Error processing audio: ${e.message}", e)

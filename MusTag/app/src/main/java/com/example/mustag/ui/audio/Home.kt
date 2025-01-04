@@ -313,17 +313,3 @@ fun HomeScreenPrev() {
         )
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
