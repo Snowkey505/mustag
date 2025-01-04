@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 private val audioDummy = Audio(
-    "".toUri(), "", 0L, "", "", 0, ""
+    "".toUri(), "", 0L, listOf(""), "", 0, "", "", null,
 )
 
 @HiltViewModel
@@ -39,8 +39,8 @@ class AudioViewModel @Inject constructor(
     var currentSelectedAudio by savedStateHandle.saveable { mutableStateOf(audioDummy) }
     var audioList by savedStateHandle.saveable { mutableStateOf(listOf<Audio>()) }
 
-    private val _uiState: MutableStateFlow<UIState> = MutableStateFlow(UIState.Initial)
-    val uiState: StateFlow<UIState> = _uiState.asStateFlow()
+    private val _uiState: MutableStateFlow<AudioUIState> = MutableStateFlow(AudioUIState.Initial)
+    val uiState: StateFlow<AudioUIState> = _uiState.asStateFlow()
 
     init {
         loadAudioData()
@@ -50,7 +50,7 @@ class AudioViewModel @Inject constructor(
         viewModelScope.launch {
             audioServiceHandler.audioState.collectLatest { mediaState ->
                 when (mediaState) {
-                    JetAudioState.Initial -> _uiState.value = UIState.Initial
+                    JetAudioState.Initial -> _uiState.value = AudioUIState.Initial
                     is JetAudioState.Buffering -> calculateProgressValue(mediaState.progress)
                     is JetAudioState.Playing -> isPlaying = mediaState.isPlaying
                     is JetAudioState.Progress -> calculateProgressValue(mediaState.progress)
@@ -60,7 +60,7 @@ class AudioViewModel @Inject constructor(
 
                     is JetAudioState.Ready -> {
                         duration = mediaState.duration
-                        _uiState.value = UIState.Ready
+                        _uiState.value = AudioUIState.Ready
                     }
                 }
             }
@@ -69,28 +69,22 @@ class AudioViewModel @Inject constructor(
         }
     }
 
-//    private fun loadAudioData() {
-//        viewModelScope.launch {
-//            val songsFromDb = repository.getAllSongs()
-//            audioList = songsFromDb.map { song ->
-//                Audio(
-//                    uri = "".toUri(),
-//                    id = song.id_song,
-//                    title = song.title,
-//                    displayName = song.title,
-//                    artist = "",
-//                    duration = 0,
-//                    data = ""
-//                )
-//            }
-//            setMediaItems()
-//        }
-//    }
-
     private fun loadAudioData() {
         viewModelScope.launch {
-            val audio = repository.getAudioData()
-            audioList = audio
+            val songsFromDb = repository.getAllSongs()
+            audioList = songsFromDb.map { song ->
+                Audio(
+                    uri = song.uri,
+                    id = song.id_song,
+                    title = song.title,
+                    displayName = song.displayName,
+                    artistNames = repository.getArtistsNamesBySong(song.id_song),
+                    duration = song.duration,
+                    album = repository.getAlbumName(song.album_id),
+                    artwork = song.artwork,
+                    data = ""
+                )
+            }
             setMediaItems()
         }
     }
@@ -102,7 +96,7 @@ class AudioViewModel @Inject constructor(
                 .setUri(audio.uri)
                 .setMediaMetadata(
                     MediaMetadata.Builder()
-                        .setAlbumArtist(audio.artist)
+                        .setAlbumArtist(audio.artistNames.joinToString(";"))
                         .setDisplayTitle(audio.title)
                         .setSubtitle(audio.displayName)
                         .build()
@@ -120,32 +114,32 @@ class AudioViewModel @Inject constructor(
         progressString = formatDuration(currentProgress)
     }
 
-    fun onUiEvents(uiEvents: UIEvents) = viewModelScope.launch {
+    fun onUiEvents(uiEvents: AudioUIEvents) = viewModelScope.launch {
         when (uiEvents) {
-            UIEvents.Backward -> audioServiceHandler.onPlayerEvents(PlayerEvent.Backward)
-            UIEvents.Forward -> audioServiceHandler.onPlayerEvents(PlayerEvent.Forward)
-            UIEvents.SeekToNext -> audioServiceHandler.onPlayerEvents(PlayerEvent.SeekToNext)
-            is UIEvents.PlayPause -> {
+            AudioUIEvents.Backward -> audioServiceHandler.onPlayerEvents(PlayerEvent.Backward)
+            AudioUIEvents.Forward -> audioServiceHandler.onPlayerEvents(PlayerEvent.Forward)
+            AudioUIEvents.SeekToNext -> audioServiceHandler.onPlayerEvents(PlayerEvent.SeekToNext)
+            is AudioUIEvents.PlayPause -> {
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.PlayPause
                 )
             }
 
-            is UIEvents.SeekTo -> {
+            is AudioUIEvents.SeekTo -> {
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.SeekTo,
                     seekPosition = ((duration * uiEvents.position) / 100f).toLong()
                 )
             }
 
-            is UIEvents.SelectedAudioChange -> {
+            is AudioUIEvents.SelectedAudioChange -> {
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.SelectedAudioChange,
                     selectedAudioIndex = uiEvents.index
                 )
             }
 
-            is UIEvents.UpdateProgress -> {
+            is AudioUIEvents.UpdateProgress -> {
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.UpdateProgress(
                         uiEvents.newProgress
@@ -169,22 +163,4 @@ class AudioViewModel @Inject constructor(
         }
         super.onCleared()
     }
-
-
-}
-
-
-sealed class UIEvents {
-    object PlayPause : UIEvents()
-    data class SelectedAudioChange(val index: Int) : UIEvents()
-    data class SeekTo(val position: Float) : UIEvents()
-    object SeekToNext : UIEvents()
-    object Backward : UIEvents()
-    object Forward : UIEvents()
-    data class UpdateProgress(val newProgress: Float) : UIEvents()
-}
-
-sealed class UIState {
-    object Initial : UIState()
-    object Ready : UIState()
 }

@@ -15,6 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.lifecycleScope
+import com.example.mustag.data.db.AlbumDao
+import com.example.mustag.data.db.ArtistDao
+import com.example.mustag.data.db.SongDao
+import com.example.mustag.data.local.ContentResolverHelper
+import com.example.mustag.data.syncAudioData
 //import androidx.lifecycle.lifecycleScope
 //import com.example.mustag.data.db.AlbumDao
 //import com.example.mustag.data.db.SongDao
@@ -25,9 +31,10 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import dagger.hilt.android.AndroidEntryPoint
 import com.example.mustag.player.service.JetAudioService
+import com.example.mustag.ui.albums.AlbumsScreen
 import com.example.mustag.ui.audio.AudioViewModel
 import com.example.mustag.ui.audio.HomeScreen
-import com.example.mustag.ui.audio.UIEvents
+import com.example.mustag.ui.audio.AudioUIEvents
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,18 +43,19 @@ class MainActivity : ComponentActivity() {
     private val viewModel: AudioViewModel by viewModels()
     private var isServiceRunning = false
 
-//    @Inject
-//    lateinit var contentResolverHelper: ContentResolverHelper
-//    @Inject lateinit var songDao: SongDao
-//    @Inject lateinit var albumDao: AlbumDao
+    @Inject lateinit var contentResolverHelper: ContentResolverHelper
+    @Inject lateinit var songDao: SongDao
+    @Inject lateinit var albumDao: AlbumDao
+    @Inject lateinit var artistDao: ArtistDao
 
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-//        lifecycleScope.launch {
-//            syncAudioData(contentResolverHelper, songDao, albumDao)
-//        }
+        // Синхронизация данных
+        lifecycleScope.launch {
+            syncAudioData(contentResolverHelper, songDao, albumDao, artistDao)
+        }
 
         setContent {
             MusTagTheme {
@@ -76,21 +84,22 @@ class MainActivity : ComponentActivity() {
                 ) {
                     HomeScreen(
                         progress = viewModel.progress,
-                        onProgress = { viewModel.onUiEvents(UIEvents.SeekTo(it)) },
+                        onProgress = { viewModel.onUiEvents(AudioUIEvents.SeekTo(it)) },
                         isAudioPlaying = viewModel.isPlaying,
                         audiList = viewModel.audioList,
                         currentPlayingAudio = viewModel.currentSelectedAudio,
                         onStart = {
-                            viewModel.onUiEvents(UIEvents.PlayPause)
+                            viewModel.onUiEvents(AudioUIEvents.PlayPause)
                         },
                         onItemClick = {
-                            viewModel.onUiEvents(UIEvents.SelectedAudioChange(it))
+                            viewModel.onUiEvents(AudioUIEvents.SelectedAudioChange(it))
                             startService()
                         },
                         onNext = {
-                            viewModel.onUiEvents(UIEvents.SeekToNext)
+                            viewModel.onUiEvents(AudioUIEvents.SeekToNext)
                         }
                     )
+//                    AlbumsScreen()
                 }
             }
         }

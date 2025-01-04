@@ -3,6 +3,8 @@ package com.example.mustag.data.local
 import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.WorkerThread
@@ -21,6 +23,7 @@ constructor(@ApplicationContext val context: Context) {
         MediaStore.Audio.AudioColumns.DATA,
         MediaStore.Audio.AudioColumns.DURATION,
         MediaStore.Audio.AudioColumns.TITLE,
+        MediaStore.Audio.AudioColumns.ALBUM
     )
 
     private var selectionClause: String? =
@@ -34,6 +37,19 @@ constructor(@ApplicationContext val context: Context) {
     fun getAudioData(): List<Audio> {
         return getCursorData()
     }
+
+    private fun getAlbumArt(uri: Uri): ByteArray? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(context, uri)
+            retriever.embeddedPicture
+        } catch (e: Exception) {
+            null
+        } finally {
+            retriever.release()
+        }
+    }
+
 
 
     private fun getCursorData(): MutableList<Audio> {
@@ -54,6 +70,8 @@ constructor(@ApplicationContext val context: Context) {
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DISPLAY_NAME)
             val artistColumn =
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.ARTIST)
+            val albumColumn =
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.ALBUM)
             val dataColumn =
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA)
             val durationColumn =
@@ -68,30 +86,25 @@ constructor(@ApplicationContext val context: Context) {
                     while (cursor.moveToNext()) {
                         val displayName = getString(displayNameColumn)
                         val id = getLong(idColumn)
-                        val artist = getString(artistColumn)
+                        val artists = getString(artistColumn).split(";")
                         val data = getString(dataColumn)
                         val duration = getInt(durationColumn)
                         val title = getString(titleColumn)
+                        val album = getString(albumColumn)
                         val uri = ContentUris.withAppendedId(
                             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                             id
                         )
 
+                        val artwork = getAlbumArt(uri)
+
                         audioList += Audio(
-                            uri, displayName, id, artist, data, duration, title
+                            uri, displayName, id, artists, data, duration, title, album, artwork
                         )
-
-
                     }
-
                 }
             }
-
-
         }
-
         return audioList
     }
-
-
 }

@@ -7,6 +7,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.MediaSession
+import androidx.room.Room
+import com.example.mustag.data.db.AlbumDao
+import com.example.mustag.data.db.AppDatabase
+import com.example.mustag.data.db.ArtistDao
+import com.example.mustag.data.db.SongDao
 //import androidx.room.Room
 //import com.example.mustag.data.db.AlbumDao
 //import com.example.mustag.data.db.AppDatabase
@@ -69,23 +74,29 @@ object MediaModule {
 
 }
 
-//@Module
-//@InstallIn(SingletonComponent::class)
-//object DatabaseModule {
-//
-//    @Provides
-//    @Singleton
-//    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-//        return Room.databaseBuilder(
-//            context,
-//            AppDatabase::class.java,
-//            "app_database"
-//        ).build()
-//    }
-//
-//    @Provides
-//    fun provideSongDao(database: AppDatabase): SongDao = database.songDao()
-//
-//    @Provides
-//    fun provideAlbumDao(database: AppDatabase): AlbumDao = database.albumDao()
-//}
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "app_database"
+        )
+            .fallbackToDestructiveMigration()
+            .build()
+    }
+
+    @Provides
+    fun provideSongDao(database: AppDatabase): SongDao = database.songDao()
+
+    @Provides
+    fun provideAlbumDao(database: AppDatabase): AlbumDao = database.albumDao()
+
+    @Provides
+    fun provideArtistDao(database: AppDatabase): ArtistDao = database.artistDao()
+}
+
