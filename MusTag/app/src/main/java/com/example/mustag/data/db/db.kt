@@ -23,7 +23,7 @@ class Converters {
         Song::class, Artist::class, Album::class, Playlist::class, Tag::class,
         SongArtist::class, SongPlaylist::class, SongTag::class
     ],
-    version = 13
+    version = 14
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

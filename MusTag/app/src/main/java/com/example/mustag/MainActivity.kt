@@ -82,24 +82,24 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-//                    HomeScreen(
-//                        progress = viewModel.progress,
-//                        onProgress = { viewModel.onUiEvents(AudioUIEvents.SeekTo(it)) },
-//                        isAudioPlaying = viewModel.isPlaying,
-//                        audiList = viewModel.audioList,
-//                        currentPlayingAudio = viewModel.currentSelectedAudio,
-//                        onStart = {
-//                            viewModel.onUiEvents(AudioUIEvents.PlayPause)
-//                        },
-//                        onItemClick = {
-//                            viewModel.onUiEvents(AudioUIEvents.SelectedAudioChange(it))
-//                            startService()
-//                        },
-//                        onNext = {
-//                            viewModel.onUiEvents(AudioUIEvents.SeekToNext)
-//                        }
-//                    )
-                    AlbumsScreen()
+                    HomeScreen(
+                        progress = viewModel.progress,
+                        onProgress = { viewModel.onUiEvents(AudioUIEvents.SeekTo(it)) },
+                        isAudioPlaying = viewModel.isPlaying,
+                        audiList = viewModel.audioList,
+                        currentPlayingAudio = viewModel.currentSelectedAudio,
+                        onStart = {
+                            viewModel.onUiEvents(AudioUIEvents.PlayPause)
+                        },
+                        onItemClick = {
+                            viewModel.onUiEvents(AudioUIEvents.SelectedAudioChange(it))
+                            startService()
+                        },
+                        onNext = {
+                            viewModel.onUiEvents(AudioUIEvents.SeekToNext)
+                        }
+                    )
+//                    AlbumsScreen()
                 }
             }
         }

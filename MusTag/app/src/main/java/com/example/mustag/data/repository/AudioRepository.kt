@@ -38,4 +38,8 @@ class AudioRepository @Inject constructor(
         val album = albumDao.getAlbumById(albumId) ?: return ""
         return album.name
     }
+
+    suspend fun getAlbumSongsCnt(albumId: Long): Int{
+        return songDao.getSongsByAlbum(albumId).size
+    }
 }

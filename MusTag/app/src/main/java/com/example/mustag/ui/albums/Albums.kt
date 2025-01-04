@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,11 +72,19 @@ fun AlbumItem(album: AlbumInfo) {
             modifier = Modifier
                 .fillMaxWidth()
         )
-        Text(
-            text = album.artist,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Light
-        )
+        Row{
+            Text(
+                text = album.artist,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Light,
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = album.songs_cnt.toString() + " " + songFormat(album.songs_cnt),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Light
+            )
+        }
     }
 }
 
@@ -98,4 +107,12 @@ fun AlbumsScreen(viewModel: AlbumsViewModel = hiltViewModel()) {
             }
         }
     }
+}
+
+fun songFormat(songsCnt: Int): String{
+    if ((songsCnt >= 5 && songsCnt <= 20) || (songsCnt % 10) >= 5 || (songsCnt % 10) == 0)
+        return "песен"
+    else if (songsCnt % 10 == 1)
+        return "песня"
+    return "песни"
 }
