@@ -9,4 +9,5 @@ data class AlbumInfo(
     val title: String,
     val year: Int,
     val artist: String,
+    val artwork: ByteArray?
 ): Parcelable

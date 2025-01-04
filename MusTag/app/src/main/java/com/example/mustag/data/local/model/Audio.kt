@@ -15,4 +15,5 @@ data class Audio(
     val duration: Int,
     val title: String,
     val album: String,
+    val artwork: ByteArray?
 ):Parcelable

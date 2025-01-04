@@ -41,7 +41,7 @@ suspend fun syncAudioData(
                 val existingAlbum = albumDao.getAlbumByName(albumName)
                 val albumId = existingAlbum?.id_album
                     ?: albumDao.insert(
-                        Album(name = albumName, year = 0, artist_id = artistId)
+                        Album(name = albumName, year = 0, artist_id = artistId, artwork = audio.artwork)
                     ).also {
                         Log.e("SYNC", "Album inserted with ID: $it")
                     }
@@ -53,7 +53,8 @@ suspend fun syncAudioData(
                         title = audio.title.ifEmpty { "Unknown Title" },
                         album_id = albumId,
                         duration = audio.duration,
-                        displayName = audio.displayName.ifEmpty { "Unknown Display Name" }
+                        displayName = audio.displayName.ifEmpty { "Unknown Display Name" },
+                        artwork = audio.artwork
                     )
                 ).also {
                     Log.e("SYNC", "Song inserted with ID: $it")

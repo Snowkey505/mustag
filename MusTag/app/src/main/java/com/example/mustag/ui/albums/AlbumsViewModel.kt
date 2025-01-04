@@ -48,6 +48,7 @@ class AlbumsViewModel @Inject constructor(
                     title = album.name,
                     artist = repository.getArtistName(album.artist_id),
                     year = album.year,
+                    artwork = album.artwork
                 )
             }
         }

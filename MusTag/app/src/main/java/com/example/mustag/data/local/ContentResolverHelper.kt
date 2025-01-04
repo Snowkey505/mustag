@@ -3,6 +3,8 @@ package com.example.mustag.data.local
 import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.WorkerThread
@@ -35,6 +37,19 @@ constructor(@ApplicationContext val context: Context) {
     fun getAudioData(): List<Audio> {
         return getCursorData()
     }
+
+    private fun getAlbumArt(uri: Uri): ByteArray? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(context, uri)
+            retriever.embeddedPicture
+        } catch (e: Exception) {
+            null
+        } finally {
+            retriever.release()
+        }
+    }
+
 
 
     private fun getCursorData(): MutableList<Audio> {
@@ -81,8 +96,10 @@ constructor(@ApplicationContext val context: Context) {
                             id
                         )
 
+                        val artwork = getAlbumArt(uri)
+
                         audioList += Audio(
-                            uri, displayName, id, artists, data, duration, title, album
+                            uri, displayName, id, artists, data, duration, title, album, artwork
                         )
                     }
                 }

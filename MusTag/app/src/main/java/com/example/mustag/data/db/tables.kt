@@ -20,7 +20,8 @@ data class Song(
     val displayName: String,
     val title: String,
     val duration: Int,
-    val album_id: Long
+    val album_id: Long,
+    val artwork: ByteArray?
 )
 
 @Entity(tableName = "Artists")
@@ -40,7 +41,8 @@ data class Album(
     @PrimaryKey(autoGenerate = true) val id_album: Long = 0,
     val name: String,
     val year: Int,
-    val artist_id: Long
+    val artist_id: Long,
+    val artwork: ByteArray?
 )
 
 @Entity(tableName = "Playlists")

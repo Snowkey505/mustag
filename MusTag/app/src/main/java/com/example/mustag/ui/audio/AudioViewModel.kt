@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 private val audioDummy = Audio(
-    "".toUri(), "", 0L, listOf(""), "", 0, "", "",
+    "".toUri(), "", 0L, listOf(""), "", 0, "", "", null,
 )
 
 @HiltViewModel
@@ -81,6 +81,7 @@ class AudioViewModel @Inject constructor(
                     artistNames = repository.getArtistsNamesBySong(song.id_song),
                     duration = song.duration,
                     album = repository.getAlbumName(song.album_id),
+                    artwork = song.artwork,
                     data = ""
                 )
             }
