@@ -303,10 +303,10 @@ fun HomeScreenPrev() {
             onProgress = {},
             isAudioPlaying = true,
             audiList = listOf(
-                Audio("".toUri(), "Nightcall", 0L, listOf("Kavinsky"), "", 0, "Nightcall"),
-                Audio("".toUri(), "Title Two", 0L, listOf("Kavinsky", "Daft Punk"), "", 0, "Title two"),
+                Audio("".toUri(), "Nightcall", 0L, listOf("Kavinsky"), "", 0, "Nightcall", ""),
+                Audio("".toUri(), "Title Two", 0L, listOf("Kavinsky", "Daft Punk"), "", 0, "Title two", ""),
             ),
-            currentPlayingAudio = Audio("".toUri(), "Nightcall", 0L, listOf("Kavinsky"), "", 0, "Nightcall"),
+            currentPlayingAudio = Audio("".toUri(), "Nightcall", 0L, listOf("Kavinsky"), "", 0, "Nightcall", ""),
             onStart = {},
             onItemClick = {},
             onNext = {}

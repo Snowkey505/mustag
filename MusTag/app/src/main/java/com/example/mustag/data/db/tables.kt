@@ -29,11 +29,18 @@ data class Artist(
     val name: String
 )
 
-@Entity(tableName = "Albums")
+@Entity(
+    tableName = "Albums",
+    foreignKeys = [
+        ForeignKey(entity = Artist::class, parentColumns = ["id_artist"], childColumns = ["artist_id"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["artist_id"])]
+)
 data class Album(
     @PrimaryKey(autoGenerate = true) val id_album: Long = 0,
     val name: String,
-    val year: Int
+    val year: Int,
+    val artist_id: Long
 )
 
 @Entity(tableName = "Playlists")
@@ -58,19 +65,6 @@ data class Tag(
 )
 data class SongArtist(
     val id_song: Long,
-    val id_artist: Long
-)
-
-@Entity(
-    tableName = "AlbumArtist",
-    primaryKeys = ["id_album", "id_artist"],
-    foreignKeys = [
-        ForeignKey(entity = Album::class, parentColumns = ["id_album"], childColumns = ["id_album"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = Artist::class, parentColumns = ["id_artist"], childColumns = ["id_artist"], onDelete = ForeignKey.CASCADE)
-    ]
-)
-data class AlbumArtist(
-    val id_album: Long,
     val id_artist: Long
 )
 

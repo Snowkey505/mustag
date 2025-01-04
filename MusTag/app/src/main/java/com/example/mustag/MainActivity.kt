@@ -31,9 +31,10 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import dagger.hilt.android.AndroidEntryPoint
 import com.example.mustag.player.service.JetAudioService
+import com.example.mustag.ui.albums.AlbumsScreen
 import com.example.mustag.ui.audio.AudioViewModel
 import com.example.mustag.ui.audio.HomeScreen
-import com.example.mustag.ui.audio.UIEvents
+import com.example.mustag.ui.audio.AudioUIEvents
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -81,23 +82,24 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    HomeScreen(
-                        progress = viewModel.progress,
-                        onProgress = { viewModel.onUiEvents(UIEvents.SeekTo(it)) },
-                        isAudioPlaying = viewModel.isPlaying,
-                        audiList = viewModel.audioList,
-                        currentPlayingAudio = viewModel.currentSelectedAudio,
-                        onStart = {
-                            viewModel.onUiEvents(UIEvents.PlayPause)
-                        },
-                        onItemClick = {
-                            viewModel.onUiEvents(UIEvents.SelectedAudioChange(it))
-                            startService()
-                        },
-                        onNext = {
-                            viewModel.onUiEvents(UIEvents.SeekToNext)
-                        }
-                    )
+//                    HomeScreen(
+//                        progress = viewModel.progress,
+//                        onProgress = { viewModel.onUiEvents(AudioUIEvents.SeekTo(it)) },
+//                        isAudioPlaying = viewModel.isPlaying,
+//                        audiList = viewModel.audioList,
+//                        currentPlayingAudio = viewModel.currentSelectedAudio,
+//                        onStart = {
+//                            viewModel.onUiEvents(AudioUIEvents.PlayPause)
+//                        },
+//                        onItemClick = {
+//                            viewModel.onUiEvents(AudioUIEvents.SelectedAudioChange(it))
+//                            startService()
+//                        },
+//                        onNext = {
+//                            viewModel.onUiEvents(AudioUIEvents.SeekToNext)
+//                        }
+//                    )
+                    AlbumsScreen()
                 }
             }
         }
@@ -115,75 +117,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-
-//@AndroidEntryPoint
-//class MainActivity : ComponentActivity() {
-//    private val viewModel: AudioViewModel by viewModels()
-//    private var isServiceRunning = false
-//
-//
-//    @OptIn(ExperimentalPermissionsApi::class)
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//
-//
-//        setContent {
-//            MusTagTheme {
-//                val permissionState = rememberPermissionState(
-//                    permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//                        Manifest.permission.READ_MEDIA_AUDIO
-//                    } else {
-//                        Manifest.permission.READ_EXTERNAL_STORAGE
-//                    }
-//                )
-//                val lifecycleOwner = LocalLifecycleOwner.current
-//                DisposableEffect(key1 = lifecycleOwner) {
-//                    val observer = LifecycleEventObserver { _, event ->
-//                        if (event == Lifecycle.Event.ON_RESUME) {
-//                            permissionState.launchPermissionRequest()
-//                        }
-//                    }
-//                    lifecycleOwner.lifecycle.addObserver(observer)
-//                    onDispose {
-//                        lifecycleOwner.lifecycle.removeObserver(observer)
-//                    }
-//                }
-//                Surface(
-//                    modifier = Modifier.fillMaxSize(),
-//                    color = MaterialTheme.colorScheme.background
-//                ) {
-//                    HomeScreen(
-//                        progress = viewModel.progress,
-//                        onProgress = { viewModel.onUiEvents(UIEvents.SeekTo(it)) },
-//                        isAudioPlaying = viewModel.isPlaying,
-//                        audiList = viewModel.audioList,
-//                        currentPlayingAudio = viewModel.currentSelectedAudio,
-//                        onStart = {
-//                            viewModel.onUiEvents(UIEvents.PlayPause)
-//                        },
-//                        onItemClick = {
-//                            viewModel.onUiEvents(UIEvents.SelectedAudioChange(it))
-//                            startService()
-//                        },
-//                        onNext = {
-//                            viewModel.onUiEvents(UIEvents.SeekToNext)
-//                        }
-//                    )
-//                }
-//            }
-//        }
-//    }
-//
-//    private fun startService() {
-//        if (!isServiceRunning) {
-//            val intent = Intent(this, JetAudioService::class.java)
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                startForegroundService(intent)
-//            } else {
-//                startService(intent)
-//            }
-//            isServiceRunning = true
-//        }
-//    }
-//}

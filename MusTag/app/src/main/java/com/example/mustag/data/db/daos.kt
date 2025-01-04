@@ -44,6 +44,9 @@ interface ArtistDao {
     @Insert
     suspend fun insert(artist: Artist): Long
 
+    @Query("SELECT * FROM Artists WHERE id_artist = :id")
+    suspend fun getArtist(id: Long): Artist?
+
     @Query("SELECT * FROM Artists WHERE name = :name")
     suspend fun getArtistByName(name: String): Artist?
 
@@ -64,6 +67,12 @@ interface AlbumDao {
 
     @Query("SELECT * FROM Albums WHERE id_album = :id")
     suspend fun getAlbumById(id: Long): Album?
+
+    @Query("SELECT * FROM Albums WHERE name = :name")
+    suspend fun getAlbumByName(name: String): Album?
+
+    @Query("SELECT * FROM Albums")
+    suspend fun getAlbums(): List<Album>
 
     @Query("SELECT Albums.* FROM Albums INNER JOIN Songs ON Songs.album_id = Albums.id_album WHERE Songs.id_song = :songId")
     suspend fun getAlbumBySong(songId: Long): Album?

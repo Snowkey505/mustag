@@ -21,6 +21,7 @@ constructor(@ApplicationContext val context: Context) {
         MediaStore.Audio.AudioColumns.DATA,
         MediaStore.Audio.AudioColumns.DURATION,
         MediaStore.Audio.AudioColumns.TITLE,
+        MediaStore.Audio.AudioColumns.ALBUM
     )
 
     private var selectionClause: String? =
@@ -54,6 +55,8 @@ constructor(@ApplicationContext val context: Context) {
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DISPLAY_NAME)
             val artistColumn =
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.ARTIST)
+            val albumColumn =
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.ALBUM)
             val dataColumn =
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA)
             val durationColumn =
@@ -72,13 +75,14 @@ constructor(@ApplicationContext val context: Context) {
                         val data = getString(dataColumn)
                         val duration = getInt(durationColumn)
                         val title = getString(titleColumn)
+                        val album = getString(albumColumn)
                         val uri = ContentUris.withAppendedId(
                             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                             id
                         )
 
                         audioList += Audio(
-                            uri, displayName, id, artists, data, duration, title
+                            uri, displayName, id, artists, data, duration, title, album
                         )
                     }
                 }

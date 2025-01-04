@@ -19,31 +19,48 @@ suspend fun syncAudioData(
     val audioList = helper.getAudioData()
 
     audioList.forEach { audio ->
-        // Добавляем альбом
-        val albumId = albumDao.insert(
-            Album(name = audio.displayName, year = 0)
-        )
+        Log.e("SYNC", "Processing audio: ${audio.title}, ${audio.duration}, ${audio.artistNames}, ${audio.album}")
 
-        Log.e("song -- ", "${audio.title}, ${audio.duration}, ${audio.artistNames}")
-        // Добавляем песню
-        val existingSong = songDao.getSongById(audio.id)
-        if (existingSong == null){
-            val songId = songDao.insert(
-                Song(uri = audio.uri, id_song = audio.id, title = audio.title, album_id = albumId, duration = audio.duration, displayName = audio.displayName)
-            )
+        try {
+            val existingSong = songDao.getSongById(audio.id)
+            if (existingSong == null) {
+                Log.e("SYNC", "Song not found in DB. Proceeding to insert.")
 
-            // Добавляем исполнителей
-            audio.artistNames.forEach { artistName ->
-                // Проверяем, существует ли исполнитель
-                val existingArtist = artistDao.getArtistByName(artistName)
-                val artistId = existingArtist?.id_artist
-                    ?: artistDao.insert(Artist(name = artistName))
+                var artistId: Long = 0L
+                audio.artistNames.forEach { artistName ->
+                    if (artistName.isNotEmpty()) {
+                        val existingArtist = artistDao.getArtistByName(artistName)
+                        artistId = existingArtist?.id_artist
+                            ?: artistDao.insert(Artist(name = artistName)).also {
+                                Log.e("SYNC", "Artist inserted with ID: $it")
+                            }
+                    }
+                }
 
-                // Добавляем связь песня-исполнитель
-                songDao.insertSongArtist(
-                    SongArtist(id_song = audio.id, id_artist = artistId)
-                )
+                val albumName = audio.album.ifEmpty { "Unknown Album" }
+                val existingAlbum = albumDao.getAlbumByName(albumName)
+                val albumId = existingAlbum?.id_album
+                    ?: albumDao.insert(
+                        Album(name = albumName, year = 0, artist_id = artistId)
+                    ).also {
+                        Log.e("SYNC", "Album inserted with ID: $it")
+                    }
+
+                songDao.insert(
+                    Song(
+                        uri = audio.uri,
+                        id_song = audio.id,
+                        title = audio.title.ifEmpty { "Unknown Title" },
+                        album_id = albumId,
+                        duration = audio.duration,
+                        displayName = audio.displayName.ifEmpty { "Unknown Display Name" }
+                    )
+                ).also {
+                    Log.e("SYNC", "Song inserted with ID: $it")
+                }
             }
+        } catch (e: Exception) {
+            Log.e("SYNC", "Error processing audio: ${e.message}", e)
         }
     }
 }

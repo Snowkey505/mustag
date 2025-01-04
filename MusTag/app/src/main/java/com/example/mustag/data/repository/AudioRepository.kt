@@ -1,5 +1,6 @@
 package com.example.mustag.data.repository
 
+import com.example.mustag.data.db.Album
 import com.example.mustag.data.db.AlbumDao
 import com.example.mustag.data.db.Artist
 import com.example.mustag.data.db.ArtistDao
@@ -18,11 +19,23 @@ class AudioRepository @Inject constructor(
 ) {
     suspend fun getAllSongs(): List<Song> = songDao.getAllSongs()
 
-    suspend fun getAlbumNameById(albumId: Long): String {
+    suspend fun getArtistNameByAlbum(albumId: Long): String {
         return albumDao.getAlbumById(albumId)?.name ?: "Unknown"
     }
 
     suspend fun getArtistsNamesBySong(songId: Long): List<String>{
         return artistDao.getArtistsBySong(songId).map { it.name }
+    }
+
+    suspend fun getArtistName(artistId: Long): String{
+        val artist = artistDao.getArtist(artistId) ?: return ""
+        return artist.name
+    }
+
+    suspend fun getAllAlbums(): List<Album> = albumDao.getAlbums()
+
+    suspend fun getAlbumName(albumId: Long): String{
+        val album = albumDao.getAlbumById(albumId) ?: return ""
+        return album.name
     }
 }
