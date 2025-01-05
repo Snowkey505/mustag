@@ -1,15 +1,26 @@
 package com.example.mustag.player.service
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import dagger.hilt.android.AndroidEntryPoint
 import com.example.mustag.player.notification.JetAudioNotificationManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -32,18 +43,18 @@ class JetAudioService : MediaSessionService() {
             )
         }
 
-        // Восстановление состояния плеера
         jetAudioServiceHandler.restorePlayerState()
+
 
         return super.onStartCommand(intent, flags, startId)
     }
 
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession =
         mediaSession
 
+    @SuppressLint("MissingSuperCall")
     override fun onDestroy() {
-        super.onDestroy()
-
         // Сохраняем состояние плеера при его остановке
         jetAudioServiceHandler.savePlayerState()
 
@@ -55,5 +66,12 @@ class JetAudioService : MediaSessionService() {
                 player.stop()
             }
         }
+        super.onDestroy()
+
     }
 }
+data class PlayerState(
+    val currentMediaItemIndex: Int,
+    val playbackPosition: Long,
+    val isPlaying: Boolean
+)

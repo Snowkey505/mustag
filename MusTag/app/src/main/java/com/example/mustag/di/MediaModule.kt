@@ -94,7 +94,7 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
-            "app_database"
+            "audio_database"
         )
             .fallbackToDestructiveMigration()
             .build()

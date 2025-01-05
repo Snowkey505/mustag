@@ -1,6 +1,7 @@
 package com.example.mustag.ui.albums
 
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -24,13 +27,16 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -44,6 +50,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.mustag.Navigation
 import com.example.mustag.data.local.model.AlbumInfo
+import com.example.mustag.data.local.model.Audio
+import com.example.mustag.ui.audio.AudioUIEvents
+import com.example.mustag.ui.audio.AudioViewModel
+import com.example.mustag.ui.audio.BottomBarPlayer
+import com.example.mustag.ui.audio.MediaPlayerController
+import com.example.mustag.ui.audio.SongInfo
 
 @Composable
 fun AlbumItem(album: AlbumInfo) {
@@ -80,18 +92,25 @@ fun AlbumItem(album: AlbumInfo) {
             modifier = Modifier
                 .fillMaxWidth()
         )
-        Row{
-            Text(
-                text = album.artist,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Light,
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = album.songs_cnt.toString() + " " + songFormat(album.songs_cnt),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Light
-            )
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item {
+                Text(
+                    text = album.artist,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Light,
+                )
+            }
+            item{
+                Text(
+                    text = album.songs_cnt.toString() + " " + songFormat(album.songs_cnt),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Light,
+                )
+            }
+
         }
     }
 }
@@ -99,10 +118,38 @@ fun AlbumItem(album: AlbumInfo) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlbumsScreen(navController: NavController, viewModel: AlbumsViewModel = hiltViewModel()) {
-    val albumList by viewModel.albumList.collectAsState()
+fun AlbumsScreen(
+    navController: NavController,
+    albumViewModel: AlbumsViewModel = hiltViewModel(),
+    viewModel: AudioViewModel
+) {
+    val progress by viewModel.progress.collectAsState()
+    val isAudioPlaying by viewModel.isPlaying.collectAsState()
+    val audioList by viewModel.audioList.collectAsState()
+    val currentPlayingAudio by viewModel.currentSelectedAudio.collectAsState()
+    val albumList by albumViewModel.albumList.collectAsState()
     Scaffold(
-        topBar = { TopPanel(navController) })
+        topBar = { TopPanel(navController) },
+    bottomBar = {
+        Log.e("SYNC", "$isAudioPlaying, AUDIO = ${currentPlayingAudio.displayName}, $progress")
+        BottomBarPlayer(
+            progress = progress,
+            isAudioPlaying = isAudioPlaying,
+            audio = currentPlayingAudio,
+            onProgress = { newProgress ->
+                viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
+            },
+            onStart = {
+                viewModel.onUiEvents(AudioUIEvents.PlayPause)
+            },
+            onNext = {
+                viewModel.onUiEvents(AudioUIEvents.SeekToNext)
+            },
+            onPrevious = {
+                viewModel.onUiEvents(AudioUIEvents.SeekToPrevious)
+            }
+        )
+    })
     { paddingValues ->
         if (albumList.isEmpty()) {
             Text(text = "", modifier = Modifier.fillMaxSize(), textAlign = TextAlign.Center)

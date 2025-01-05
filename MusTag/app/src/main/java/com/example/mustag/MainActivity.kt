@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.view.WindowCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
@@ -33,6 +34,7 @@ import com.example.mustag.data.local.ContentResolverHelper
 import com.example.mustag.data.syncAudioData
 import com.example.mustag.player.service.JetAudioService
 import com.example.mustag.ui.albums.AlbumsScreen
+import com.example.mustag.ui.audio.AudioViewModel
 import com.example.mustag.ui.audio.SongsScreen
 import com.example.mustag.ui.theme.MusTagTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -49,20 +51,20 @@ enum class Navigation(val route: String) {
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-//    private val viewModel: AudioViewModel by viewModels()
-    private var isServiceRunning = false
 
     @Inject lateinit var contentResolverHelper: ContentResolverHelper
     @Inject lateinit var songDao: SongDao
     @Inject lateinit var albumDao: AlbumDao
     @Inject lateinit var artistDao: ArtistDao
 
+    private var isServiceRunning = false
+
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         lifecycleScope.launch {
-            syncAudioData(contentResolverHelper, songDao, albumDao, artistDao)
+            syncAudioData(contentResolverHelper, songDao, albumDao, artistDao, context = this@MainActivity)
         }
 
         setStatusBarColor(
@@ -91,24 +93,21 @@ class MainActivity : ComponentActivity() {
                         lifecycleOwner.lifecycle.removeObserver(observer)
                     }
                 }
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+
+                // Навигация и навигационный граф
+                val navController = rememberNavController()
+                val audioViewModel: AudioViewModel = hiltViewModel()
+
+                NavHost(
+                    navController = navController,
+                    startDestination = Navigation.SONGS.toString()
                 ) {
-
-                    val navController = rememberNavController()
-
-                    NavHost(
-                        navController = navController,
-                        startDestination = Navigation.SONGS.toString()
-                    ) {
-                        composable(Navigation.SONGS.toString()) {
-                            SongsScreen(navController)
-                        }
-
-                        composable(Navigation.ALBUMS.toString()) {
-                            AlbumsScreen(navController)
-                        }
+                    composable(Navigation.SONGS.toString()) {
+                        SongsScreen(navController = navController, viewModel = audioViewModel,
+                            startService = ::startService)
+                    }
+                    composable(Navigation.ALBUMS.toString()) {
+                        AlbumsScreen(navController = navController, viewModel = audioViewModel)
                     }
                 }
             }
@@ -126,7 +125,21 @@ class MainActivity : ComponentActivity() {
             isServiceRunning = true
         }
     }
+
+    private fun stopService() {
+        if (isServiceRunning) {
+            val intent = Intent(application, JetAudioService::class.java)
+            application.stopService(intent)
+            isServiceRunning = false
+        }
+    }
+
+    override fun onDestroy() {
+        stopService()
+        super.onDestroy()
+    }
 }
+
 
 fun ComponentActivity.setStatusBarColor(color: Color, darkIcons: Boolean) {
     window.statusBarColor = color.toArgb()

@@ -1,11 +1,10 @@
 package com.example.mustag.ui.audio
 
-import androidx.compose.runtime.mutableStateOf
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.saveable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,40 +25,56 @@ private val audioDummy = Audio(
     "".toUri(), "", 0L, listOf(""), "", 0, "", "", null,
 )
 
+
 @HiltViewModel
 class AudioViewModel @Inject constructor(
     private val audioServiceHandler: JetAudioServiceHandler,
     private val repository: AudioRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    // Состояния для длительности, прогресса и состояния воспроизведения
     private val _duration = MutableStateFlow(0L)
-    val duration: StateFlow<Long> = _duration
+    var duration: StateFlow<Long> = _duration
 
     private val _progress = MutableStateFlow(0f)
-    val progress: StateFlow<Float> = _progress
+    var progress: StateFlow<Float> = _progress
 
     private val _progressString = MutableStateFlow("00:00")
-    val progressString: StateFlow<String> = _progressString
+    var progressString: StateFlow<String> = _progressString
 
     private val _isPlaying = MutableStateFlow(false)
-    val isPlaying: StateFlow<Boolean> = _isPlaying
+    var isPlaying: StateFlow<Boolean> = _isPlaying
 
     private val _currentSelectedAudio = MutableStateFlow(audioDummy)
-    val currentSelectedAudio: StateFlow<Audio> = _currentSelectedAudio
+    var currentSelectedAudio: StateFlow<Audio> = _currentSelectedAudio
 
     private val _audioList = MutableStateFlow(emptyList<Audio>())
-    val audioList: StateFlow<List<Audio>> = _audioList
+    var audioList: StateFlow<List<Audio>> = _audioList
 
     private val _uiState: MutableStateFlow<AudioUIState> = MutableStateFlow(AudioUIState.Initial)
     val uiState: StateFlow<AudioUIState> = _uiState.asStateFlow()
 
+    private var isDataLoaded = false
+
+    // Новый список для медиа-элементов
+    private val _mediaItemsList = MutableStateFlow<List<MediaItem>>(emptyList())
+    val mediaItemsList: StateFlow<List<MediaItem>> = _mediaItemsList
+
     init {
-        loadAudioData()
+        Log.e("a", "INIT_VIEW_MODEL, data_is_loaded is $isDataLoaded")
+        // Подключаемся к AudioService
         observeAudioService()
+        if (!isDataLoaded)
+        {
+            loadAudioData()
+            isDataLoaded = true
+        }
     }
 
     private fun loadAudioData() {
         viewModelScope.launch {
+            // Загружаем все песни из базы данных
             val songsFromDb = repository.getAllSongs()
             _audioList.value = songsFromDb.map { song ->
                 Audio(
@@ -74,12 +89,16 @@ class AudioViewModel @Inject constructor(
                     data = ""
                 )
             }
-            setMediaItems()
+            isDataLoaded = true // Устанавливаем флаг, что данные загружены
+
+            // Обновляем список медиа-элементов
+            updateMediaItems()
         }
     }
 
-    private fun setMediaItems() {
-        _audioList.value.map { audio ->
+    // Функция для обновления списка медиа-элементов
+    private fun updateMediaItems() {
+        val mediaItems = _audioList.value.map { audio ->
             MediaItem.Builder()
                 .setUri(audio.uri)
                 .setMediaMetadata(
@@ -90,25 +109,46 @@ class AudioViewModel @Inject constructor(
                         .build()
                 )
                 .build()
-        }.also {
-            audioServiceHandler.setMediaItemList(it)
         }
+        _mediaItemsList.value = mediaItems
+    }
+
+    fun setMediaItems() {
+        Log.e("SYNC", "MEDIA_BUILDING")
+        audioServiceHandler.setMediaItemList(_mediaItemsList.value)
     }
 
     private fun observeAudioService() {
         viewModelScope.launch {
             audioServiceHandler.audioState.collectLatest { mediaState ->
                 when (mediaState) {
-                    JetAudioState.Initial -> _uiState.value = AudioUIState.Initial
-                    is JetAudioState.Buffering -> calculateProgressValue(mediaState.progress)
-                    is JetAudioState.Playing -> _isPlaying.value = mediaState.isPlaying
-                    is JetAudioState.Progress -> calculateProgressValue(mediaState.progress)
-                    is JetAudioState.CurrentPlaying -> {
-                        _currentSelectedAudio.value = _audioList.value[mediaState.mediaItemIndex]
+                    JetAudioState.Initial -> {
+                        _uiState.value = AudioUIState.Initial
+                        Log.e("SYNC", "PLAYER_INITIAL")
+                    }
+                    is JetAudioState.Buffering -> {
+                        Log.e("SYNC", "PLAYER_BUFFERING")
+                        calculateProgressValue(mediaState.progress)
+                    }
+                    is JetAudioState.Playing -> {
+                        Log.e("SYNC", "PLAYER_IS_PLAYING")
+                        _isPlaying.value = mediaState.isPlaying
+                        // Обновляем текущий выбранный аудио-файл, если индекс изменился
+                        _currentSelectedAudio.value = _audioList.value.getOrNull(mediaState.currentMediaItemIndex)!!
+                    }
+                    is JetAudioState.Progress -> {
+                        Log.e("SYNC", "PLAYER_PROGRESS")
+                        calculateProgressValue(mediaState.progress)
                     }
                     is JetAudioState.Ready -> {
+                        Log.e("SYNC", "PLAYER_READY")
                         _duration.value = mediaState.duration
                         _uiState.value = AudioUIState.Ready
+                    }
+                    is JetAudioState.CurrentPlaying -> {
+                        Log.e("SYNC", "PLAYER_CURRENT")
+                        // Устанавливаем текущий элемент на основе индекса
+                        _currentSelectedAudio.value = _audioList.value.getOrNull(mediaState.mediaItemIndex)!!
                     }
                 }
             }
@@ -127,22 +167,27 @@ class AudioViewModel @Inject constructor(
             AudioUIEvents.Backward -> audioServiceHandler.onPlayerEvents(PlayerEvent.Backward)
             AudioUIEvents.Forward -> audioServiceHandler.onPlayerEvents(PlayerEvent.Forward)
             AudioUIEvents.SeekToNext -> audioServiceHandler.onPlayerEvents(PlayerEvent.SeekToNext)
+            AudioUIEvents.SeekToPrevious -> audioServiceHandler.onPlayerEvents(PlayerEvent.SeekToPrevious)
             is AudioUIEvents.PlayPause -> {
+                Log.e("SYNC", "UI_PLAY_PAUSE")
                 audioServiceHandler.onPlayerEvents(PlayerEvent.PlayPause)
             }
             is AudioUIEvents.SeekTo -> {
+                Log.e("SYNC", "UI_SEEK_TO")
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.SeekTo,
                     seekPosition = ((_duration.value * uiEvents.position) / 100f).toLong()
                 )
             }
             is AudioUIEvents.SelectedAudioChange -> {
+                setMediaItems()
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.SelectedAudioChange,
                     selectedAudioIndex = uiEvents.index
                 )
             }
             is AudioUIEvents.UpdateProgress -> {
+                Log.e("SYNC", "UPDATE_PROGRESS")
                 audioServiceHandler.onPlayerEvents(
                     PlayerEvent.UpdateProgress(uiEvents.newProgress)
                 )

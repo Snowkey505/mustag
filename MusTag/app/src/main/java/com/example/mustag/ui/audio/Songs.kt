@@ -1,6 +1,7 @@
 package com.example.mustag.ui.audio
 
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,6 +39,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -58,28 +61,38 @@ import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SongsScreen(navController: NavController, viewModel: AudioViewModel = hiltViewModel()) {
+fun SongsScreen(navController: NavController, viewModel: AudioViewModel, startService: () -> Unit) {
     val progress by viewModel.progress.collectAsState()
     val isAudioPlaying by viewModel.isPlaying.collectAsState()
     val audioList by viewModel.audioList.collectAsState()
     val currentPlayingAudio by viewModel.currentSelectedAudio.collectAsState()
 
+    LaunchedEffect(key1 = audioList) {
+        if (audioList.isNotEmpty()) {
+            startService()
+        }
+    }
+
     Scaffold(
         topBar = { TopPanel(navController) },
         bottomBar = {
+            Log.e("SYNC", "$isAudioPlaying, AUDIO = ${currentPlayingAudio.displayName}, $progress")
             BottomBarPlayer(
                 progress = progress,
+                audio = currentPlayingAudio,
+                isAudioPlaying = isAudioPlaying,
                 onProgress = { newProgress ->
                     viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
                 },
-                audio = currentPlayingAudio,
                 onStart = {
                     viewModel.onUiEvents(AudioUIEvents.PlayPause)
                 },
                 onNext = {
                     viewModel.onUiEvents(AudioUIEvents.SeekToNext)
                 },
-                isAudioPlaying = isAudioPlaying
+                onPrevious = {
+                    viewModel.onUiEvents(AudioUIEvents.SeekToPrevious)
+                }
             )
         }
     ) { paddingValues ->
@@ -229,7 +242,9 @@ fun BottomBarPlayer(
     isAudioPlaying: Boolean,
     onStart: () -> Unit,
     onNext: () -> Unit,
+    onPrevious: () ->Unit
 ) {
+
     BottomAppBar(
         modifier = Modifier.height(80.dp),
         content = {
@@ -244,13 +259,14 @@ fun BottomBarPlayer(
                 ) {
                     SongInfo(
                         audio = audio,
-                        modifier = Modifier
+                        modifier = Modifier.weight(1f)
                     )
 
                     MediaPlayerController(
                         isAudioPlaying = isAudioPlaying,
                         onStart = onStart,
-                        onNext = onNext
+                        onNext = onNext,
+                        onPrevious = onPrevious
                     )
 
                 }
@@ -270,19 +286,29 @@ fun MediaPlayerController(
     isAudioPlaying: Boolean,
     onStart: () -> Unit,
     onNext: () -> Unit,
+    onPrevious: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
+            .width(100.dp)
             .padding(start = 4.dp, end = 4.dp)
     ) {
+        Icon(
+            imageVector = Icons.Default.SkipPrevious,
+            modifier = Modifier.clickable {
+                onPrevious()
+            },
+            contentDescription = null
+        )
+        Spacer(modifier = Modifier.size(5.dp))
         PlayerIconItem(
             icon = if (isAudioPlaying) Icons.Default.Pause
             else Icons.Default.PlayArrow
         ) {
             onStart()
         }
-        Spacer(modifier = Modifier.size(8.dp))
+        Spacer(modifier = Modifier.size(5.dp))
         Icon(
             imageVector = Icons.Default.SkipNext,
             modifier = Modifier.clickable {
@@ -296,13 +322,13 @@ fun MediaPlayerController(
 @Composable
 fun SongInfo(
     modifier: Modifier = Modifier,
-    audio: Audio,
+    audio: Audio?,
 ) {
     Row(
         modifier = modifier.padding(start = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        audio.artwork?.let { artworkBytes ->
+        audio!!.artwork?.let { artworkBytes ->
             val bitmap = BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes.size)
             val imageBitmap = bitmap.asImageBitmap()
 
@@ -325,18 +351,18 @@ fun SongInfo(
         ) {}
         Spacer(modifier = Modifier.size(10.dp))
         Text(
-            text = audio.title,
+            text = audio!!.title,
             fontWeight = FontWeight.Normal,
             style = MaterialTheme.typography.bodyMedium,
-            overflow = TextOverflow.Clip,
+            overflow = TextOverflow.Ellipsis,
             maxLines = 1
         )
         Spacer(modifier = Modifier.size(8.dp))
         Text(
-            text = audio.artistNames.joinToString(", "),
-            fontWeight = FontWeight.ExtraLight,
-            style = MaterialTheme.typography.bodyMedium,
-            overflow = TextOverflow.Clip,
+            text = audio!!.artistNames.joinToString(", "),
+            fontWeight = FontWeight.Normal,
+            style = MaterialTheme.typography.bodySmall,
+            overflow = TextOverflow.Ellipsis,
             maxLines = 1
         )
     }
