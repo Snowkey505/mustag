@@ -36,6 +36,7 @@ import com.example.mustag.player.service.JetAudioService
 import com.example.mustag.ui.albums.AlbumsScreen
 import com.example.mustag.ui.audio.AudioViewModel
 import com.example.mustag.ui.audio.SongsScreen
+import com.example.mustag.ui.player.Player
 import com.example.mustag.ui.theme.MusTagTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
@@ -47,6 +48,7 @@ import javax.inject.Inject
 enum class Navigation(val route: String) {
     SONGS("songs"),
     ALBUMS("albums"),
+    PLAYER("player")
 }
 
 @AndroidEntryPoint
@@ -108,6 +110,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable(Navigation.ALBUMS.toString()) {
                         AlbumsScreen(navController = navController, viewModel = audioViewModel)
+                    }
+                    composable(Navigation.PLAYER.toString()) {
+                        Player(navController = navController, viewModel = audioViewModel)
                     }
                 }
             }

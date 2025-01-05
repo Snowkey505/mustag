@@ -81,6 +81,8 @@ fun SongsScreen(navController: NavController, viewModel: AudioViewModel, startSe
                 progress = progress,
                 audio = currentPlayingAudio,
                 isAudioPlaying = isAudioPlaying,
+                viewModel = viewModel,
+                navController = navController,
                 onProgress = { newProgress ->
                     viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
                 },
@@ -185,7 +187,7 @@ fun AudioItem(
     }
 }
 
-private fun timeStampToDuration(position: Long): String {
+fun timeStampToDuration(position: Long): String {
     val totalSecond = floor(position / 1E3).toInt()
     val minutes = totalSecond / 60
     val remainingSeconds = totalSecond - (minutes * 60)
@@ -239,6 +241,8 @@ fun BottomBarPlayer(
     progress: Float,
     onProgress: (Float) -> Unit,
     audio: Audio,
+    viewModel: AudioViewModel,
+    navController: NavController,
     isAudioPlaying: Boolean,
     onStart: () -> Unit,
     onNext: () -> Unit,
@@ -259,6 +263,8 @@ fun BottomBarPlayer(
                 ) {
                     SongInfo(
                         audio = audio,
+                        navController = navController,
+                        viewModel = viewModel,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -322,6 +328,8 @@ fun MediaPlayerController(
 @Composable
 fun SongInfo(
     modifier: Modifier = Modifier,
+    navController: NavController,
+    viewModel: AudioViewModel,
     audio: Audio?,
 ) {
     Row(
@@ -352,10 +360,11 @@ fun SongInfo(
         Spacer(modifier = Modifier.size(10.dp))
         Text(
             text = audio!!.title,
+            modifier = Modifier.clickable { navController.navigate(Navigation.PLAYER.toString()) },
             fontWeight = FontWeight.Normal,
             style = MaterialTheme.typography.bodyMedium,
             overflow = TextOverflow.Ellipsis,
-            maxLines = 1
+            maxLines = 1,
         )
         Spacer(modifier = Modifier.size(8.dp))
         Text(

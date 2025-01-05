@@ -135,6 +135,8 @@ fun AlbumsScreen(
         BottomBarPlayer(
             progress = progress,
             isAudioPlaying = isAudioPlaying,
+            viewModel = viewModel,
+            navController = navController,
             audio = currentPlayingAudio,
             onProgress = { newProgress ->
                 viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
