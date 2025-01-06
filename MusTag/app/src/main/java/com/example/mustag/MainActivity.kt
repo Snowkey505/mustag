@@ -24,15 +24,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.mustag.data.db.AlbumDao
 import com.example.mustag.data.db.ArtistDao
 import com.example.mustag.data.db.SongDao
 import com.example.mustag.data.local.ContentResolverHelper
 import com.example.mustag.data.syncAudioData
 import com.example.mustag.player.service.JetAudioService
+import com.example.mustag.ui.album.Album
 import com.example.mustag.ui.albums.AlbumsScreen
 import com.example.mustag.ui.audio.AudioViewModel
 import com.example.mustag.ui.audio.SongsScreen
@@ -48,7 +51,8 @@ import javax.inject.Inject
 enum class Navigation(val route: String) {
     SONGS("songs"),
     ALBUMS("albums"),
-    PLAYER("player")
+    PLAYER("player"),
+    ALBUM("album")
 }
 
 @AndroidEntryPoint
@@ -113,6 +117,15 @@ class MainActivity : ComponentActivity() {
                     }
                     composable(Navigation.PLAYER.toString()) {
                         Player(navController = navController, viewModel = audioViewModel)
+                    }
+
+                    composable(
+                        route = "${Navigation.ALBUM}/{albumId}",
+                        arguments = listOf(navArgument("albumId") { type = NavType.LongType }
+                        )
+                    ) { backStackEntry ->
+                        val albumId = backStackEntry.arguments?.getLong("albumId")
+                        Album(navController = navController, viewModel = audioViewModel, albumId = albumId!!,)
                     }
                 }
             }

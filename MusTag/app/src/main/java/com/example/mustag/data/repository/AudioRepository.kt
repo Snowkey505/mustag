@@ -17,10 +17,14 @@ class AudioRepository @Inject constructor(
     private val albumDao: AlbumDao,
     private val artistDao: ArtistDao,
 ) {
-    suspend fun getAllSongs(): List<Song> = songDao.getAllSongs()
+    suspend fun getAllSongs(): List<Song> = songDao.getAllSongs().reversed()
 
-    suspend fun getArtistNameByAlbum(albumId: Long): String {
-        return albumDao.getAlbumById(albumId)?.name ?: "Unknown"
+    suspend fun getAlbum(name: String): Long {
+        return albumDao.getAlbumByName(name)!!.id_album
+    }
+
+    suspend fun getSongsOnAlbum(albumId: Long): List<Song>{
+        return songDao.getSongsByAlbum(albumId).reversed()
     }
 
     suspend fun getArtistsNamesBySong(songId: Long): List<String>{

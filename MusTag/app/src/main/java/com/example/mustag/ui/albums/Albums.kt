@@ -52,46 +52,50 @@ import com.example.mustag.Navigation
 import com.example.mustag.data.local.model.AlbumInfo
 import com.example.mustag.data.local.model.Audio
 import com.example.mustag.ui.audio.AudioUIEvents
+import com.example.mustag.ui.audio.AudioUIState
 import com.example.mustag.ui.audio.AudioViewModel
 import com.example.mustag.ui.audio.BottomBarPlayer
 import com.example.mustag.ui.audio.MediaPlayerController
 import com.example.mustag.ui.audio.SongInfo
 
 @Composable
-fun AlbumItem(album: AlbumInfo) {
+fun AlbumItem(album: AlbumInfo, navController: NavController) {
     Column(
         modifier = Modifier
             .padding(5.dp)
             .fillMaxWidth()
     ) {
-        album.artwork?.let { artworkBytes ->
-            val bitmap = BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes.size)
-            val imageBitmap = bitmap.asImageBitmap()
+        Column(modifier = Modifier.clickable { navController.navigate("${Navigation.ALBUM}/${album.id}") }){
+            album.artwork?.let { artworkBytes ->
+                val bitmap = BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes.size)
+                val imageBitmap = bitmap.asImageBitmap()
 
-            Image(
-                bitmap = imageBitmap,
-                contentDescription = "Album Artwork",
-                modifier = Modifier
-                    .fillMaxWidth(1f)
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(MaterialTheme.colorScheme.primary),
-                contentScale = ContentScale.FillBounds
+                Image(
+                    bitmap = imageBitmap,
+                    contentDescription = "Album Artwork",
+                    modifier = Modifier
+                        .fillMaxWidth(1f)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentScale = ContentScale.FillBounds
+                )
+            } ?: Text(
+                text = "No Artwork",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(16.dp)
             )
-        } ?: Text(
-            text = "No Artwork",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(16.dp)
-        )
 
-        Text(
-            text = album.title,
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .fillMaxWidth()
-        )
+            Text(
+                text = album.title,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+        }
+
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -128,31 +132,37 @@ fun AlbumsScreen(
     val audioList by viewModel.audioList.collectAsState()
     val currentPlayingAudio by viewModel.currentSelectedAudio.collectAsState()
     val albumList by albumViewModel.albumList.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+
     Scaffold(
         topBar = { TopPanel(navController) },
-    bottomBar = {
-        Log.e("SYNC", "$isAudioPlaying, AUDIO = ${currentPlayingAudio.displayName}, $progress")
-        BottomBarPlayer(
-            progress = progress,
-            isAudioPlaying = isAudioPlaying,
-            viewModel = viewModel,
-            navController = navController,
-            audio = currentPlayingAudio,
-            onProgress = { newProgress ->
-                viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
-            },
-            onStart = {
-                viewModel.onUiEvents(AudioUIEvents.PlayPause)
-            },
-            onNext = {
-                viewModel.onUiEvents(AudioUIEvents.SeekToNext)
-            },
-            onPrevious = {
-                viewModel.onUiEvents(AudioUIEvents.SeekToPrevious)
+        bottomBar = {
+            if (uiState == AudioUIState.Playing) {
+                Log.e("SYNC", "$isAudioPlaying, AUDIO = ${currentPlayingAudio.displayName}, $progress")
+                BottomBarPlayer(
+                    progress = progress,
+                    audio = currentPlayingAudio,
+                    isAudioPlaying = isAudioPlaying,
+                    viewModel = viewModel,
+                    navController = navController,
+                    onProgress = { newProgress ->
+                        viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
+                    },
+                    onStart = {
+                        viewModel.onUiEvents(AudioUIEvents.PlayPause)
+                    },
+                    onNext = {
+                        viewModel.onUiEvents(AudioUIEvents.SeekToNext)
+                    },
+                    onPrevious = {
+                        viewModel.onUiEvents(AudioUIEvents.SeekToPrevious)
+                    }
+                )
+            } else {
+                null
             }
-        )
-    })
-    { paddingValues ->
+        }
+    ) { paddingValues ->
         if (albumList.isEmpty()) {
             Text(text = "", modifier = Modifier.fillMaxSize(), textAlign = TextAlign.Center)
         } else {
@@ -164,7 +174,7 @@ fun AlbumsScreen(
                     .padding(paddingValues).padding(start = 5.dp, end = 5.dp)
             ) {
                 items(albumList) { album ->
-                    AlbumItem(album = album)
+                    AlbumItem(album = album, navController = navController)
                 }
             }
         }

@@ -66,6 +66,7 @@ fun SongsScreen(navController: NavController, viewModel: AudioViewModel, startSe
     val isAudioPlaying by viewModel.isPlaying.collectAsState()
     val audioList by viewModel.audioList.collectAsState()
     val currentPlayingAudio by viewModel.currentSelectedAudio.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(key1 = audioList) {
         if (audioList.isNotEmpty()) {
@@ -73,29 +74,35 @@ fun SongsScreen(navController: NavController, viewModel: AudioViewModel, startSe
         }
     }
 
+    Log.e("SYNC", "$audioList")
+
     Scaffold(
         topBar = { TopPanel(navController) },
         bottomBar = {
-            Log.e("SYNC", "$isAudioPlaying, AUDIO = ${currentPlayingAudio.displayName}, $progress")
-            BottomBarPlayer(
-                progress = progress,
-                audio = currentPlayingAudio,
-                isAudioPlaying = isAudioPlaying,
-                viewModel = viewModel,
-                navController = navController,
-                onProgress = { newProgress ->
-                    viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
-                },
-                onStart = {
-                    viewModel.onUiEvents(AudioUIEvents.PlayPause)
-                },
-                onNext = {
-                    viewModel.onUiEvents(AudioUIEvents.SeekToNext)
-                },
-                onPrevious = {
-                    viewModel.onUiEvents(AudioUIEvents.SeekToPrevious)
-                }
-            )
+            if (uiState == AudioUIState.Playing) {
+                Log.e("SYNC", "$isAudioPlaying, AUDIO = ${currentPlayingAudio.displayName}, $progress")
+                BottomBarPlayer(
+                    progress = progress,
+                    audio = currentPlayingAudio,
+                    isAudioPlaying = isAudioPlaying,
+                    viewModel = viewModel,
+                    navController = navController,
+                    onProgress = { newProgress ->
+                        viewModel.onUiEvents(AudioUIEvents.SeekTo(newProgress))
+                    },
+                    onStart = {
+                        viewModel.onUiEvents(AudioUIEvents.PlayPause)
+                    },
+                    onNext = {
+                        viewModel.onUiEvents(AudioUIEvents.SeekToNext)
+                    },
+                    onPrevious = {
+                        viewModel.onUiEvents(AudioUIEvents.SeekToPrevious)
+                    }
+                )
+            } else {
+                null
+            }
         }
     ) { paddingValues ->
         LazyColumn(
@@ -332,6 +339,8 @@ fun SongInfo(
     viewModel: AudioViewModel,
     audio: Audio?,
 ) {
+    val albumId by viewModel.currentAlbum.collectAsState()
+
     Row(
         modifier = modifier.padding(start = 6.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -347,7 +356,8 @@ fun SongInfo(
                     .width(30.dp)
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(MaterialTheme.colorScheme.primary)
+                    .clickable { navController.navigate("${Navigation.ALBUM}/${albumId}") },
                 contentScale = ContentScale.FillBounds
             )
         } ?: PlayerIconItem(

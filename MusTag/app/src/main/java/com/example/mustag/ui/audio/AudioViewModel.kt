@@ -49,6 +49,9 @@ class AudioViewModel @Inject constructor(
     private val _currentSelectedAudio = MutableStateFlow(audioDummy)
     var currentSelectedAudio: StateFlow<Audio> = _currentSelectedAudio
 
+    private val _currentAlbum = MutableStateFlow(-1L)
+    var currentAlbum: StateFlow<Long> = _currentAlbum
+
     private val _audioList = MutableStateFlow(emptyList<Audio>())
     var audioList: StateFlow<List<Audio>> = _audioList
 
@@ -89,15 +92,13 @@ class AudioViewModel @Inject constructor(
                     data = ""
                 )
             }
-            isDataLoaded = true // Устанавливаем флаг, что данные загружены
+            isDataLoaded = true
 
-            // Обновляем список медиа-элементов
             updateMediaItems()
         }
     }
 
-    // Функция для обновления списка медиа-элементов
-    private fun updateMediaItems() {
+    fun updateMediaItems() {
         val mediaItems = _audioList.value.map { audio ->
             MediaItem.Builder()
                 .setUri(audio.uri)
@@ -133,12 +134,15 @@ class AudioViewModel @Inject constructor(
                     is JetAudioState.Playing -> {
                         Log.e("SYNC", "PLAYER_IS_PLAYING")
                         _isPlaying.value = mediaState.isPlaying
+                        _uiState.value = AudioUIState.Playing
                         // Обновляем текущий выбранный аудио-файл, если индекс изменился
                         _currentSelectedAudio.value = _audioList.value.getOrNull(mediaState.currentMediaItemIndex)!!
+                        _currentAlbum.value = repository.getAlbum(_currentSelectedAudio.value.album)
                     }
                     is JetAudioState.Progress -> {
                         Log.e("SYNC", "PLAYER_PROGRESS")
                         calculateProgressValue(mediaState.progress)
+                        _uiState.value = AudioUIState.Playing
                     }
                     is JetAudioState.Ready -> {
                         Log.e("SYNC", "PLAYER_READY")
@@ -149,6 +153,7 @@ class AudioViewModel @Inject constructor(
                         Log.e("SYNC", "PLAYER_CURRENT")
                         // Устанавливаем текущий элемент на основе индекса
                         _currentSelectedAudio.value = _audioList.value.getOrNull(mediaState.mediaItemIndex)!!
+                        _currentAlbum.value = repository.getAlbum(_currentSelectedAudio.value.album)
                     }
                 }
             }
@@ -194,6 +199,10 @@ class AudioViewModel @Inject constructor(
                 _progress.value = uiEvents.newProgress
             }
         }
+    }
+
+    fun setAudioList(newAudioList: List<Audio>) {
+        _audioList.value = newAudioList
     }
 
     fun formatDuration(duration: Long): String {
