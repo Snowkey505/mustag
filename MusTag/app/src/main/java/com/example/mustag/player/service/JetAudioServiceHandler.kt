@@ -29,7 +29,6 @@ class JetAudioServiceHandler @Inject constructor(
     private var progressJob: Job? = null
     private val coroutineScope = MainScope()
 
-
     init {
         exoPlayer.addListener(this)
     }

@@ -27,7 +27,8 @@ data class Song(
 @Entity(tableName = "Artists")
 data class Artist(
     @PrimaryKey(autoGenerate = true) val id_artist: Long = 0,
-    val name: String
+    val name: String,
+    val artwork: ByteArray?
 )
 
 @Entity(
@@ -81,6 +82,19 @@ data class SongArtist(
 data class SongPlaylist(
     val id_song: Long,
     val id_playlist: Long
+)
+
+@Entity(
+    tableName = "AlbumArtist",
+    primaryKeys = ["id_album", "id_artist"],
+    foreignKeys = [
+        ForeignKey(entity = Album::class, parentColumns = ["id_album"], childColumns = ["id_album"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = Artist::class, parentColumns = ["id_artist"], childColumns = ["id_artist"], onDelete = ForeignKey.CASCADE)
+    ]
+)
+data class AlbumArtist(
+    val id_album: Long,
+    val id_artist: Long
 )
 
 @Entity(

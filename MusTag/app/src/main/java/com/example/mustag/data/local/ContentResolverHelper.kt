@@ -85,8 +85,9 @@ constructor(@ApplicationContext val context: Context) {
                 } else {
                     while (cursor.moveToNext()) {
                         val displayName = getString(displayNameColumn)
+                        Log.e("Cursor", displayName)
                         val id = getLong(idColumn)
-                        val artists = getString(artistColumn).split(";")
+                        val artists = getString(artistColumn).split("/")
                         val data = getString(dataColumn)
                         val duration = getInt(durationColumn)
                         val title = getString(titleColumn)

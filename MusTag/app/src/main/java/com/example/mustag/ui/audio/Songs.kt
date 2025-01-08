@@ -239,6 +239,20 @@ private fun TopPanel(navController: NavController) {
                 )
             }
         }
+        item {
+            Box(
+                modifier = Modifier
+                    .background(color = Color.Gray, shape = RoundedCornerShape(10.dp))
+                    .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+                    .clickable { navController.navigate(Navigation.ARTISTS.toString()) }
+            ) {
+                Text(
+                    text = "Исполнители",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White
+                )
+            }
+        }
     }
 }
 

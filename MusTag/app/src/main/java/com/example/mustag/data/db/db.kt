@@ -21,9 +21,9 @@ class Converters {
 @Database(
     entities = [
         Song::class, Artist::class, Album::class, Playlist::class, Tag::class,
-        SongArtist::class, SongPlaylist::class, SongTag::class
+        SongArtist::class, SongPlaylist::class, AlbumArtist::class, SongTag::class
     ],
-    version = 15
+    version = 17
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

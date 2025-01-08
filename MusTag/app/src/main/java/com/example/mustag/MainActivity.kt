@@ -37,6 +37,7 @@ import com.example.mustag.data.syncAudioData
 import com.example.mustag.player.service.JetAudioService
 import com.example.mustag.ui.album.Album
 import com.example.mustag.ui.albums.AlbumsScreen
+import com.example.mustag.ui.artists.ArtistsScreen
 import com.example.mustag.ui.audio.AudioViewModel
 import com.example.mustag.ui.audio.SongsScreen
 import com.example.mustag.ui.player.Player
@@ -52,7 +53,8 @@ enum class Navigation(val route: String) {
     SONGS("songs"),
     ALBUMS("albums"),
     PLAYER("player"),
-    ALBUM("album")
+    ALBUM("album"),
+    ARTISTS("artists")
 }
 
 @AndroidEntryPoint
@@ -106,7 +108,7 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(
                     navController = navController,
-                    startDestination = Navigation.SONGS.toString()
+                    startDestination = Navigation.ALBUMS.toString()
                 ) {
                     composable(Navigation.SONGS.toString()) {
                         SongsScreen(navController = navController, viewModel = audioViewModel,
@@ -114,6 +116,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable(Navigation.ALBUMS.toString()) {
                         AlbumsScreen(navController = navController, viewModel = audioViewModel)
+                    }
+                    composable(Navigation.ARTISTS.toString()) {
+                        ArtistsScreen(navController = navController, viewModel = audioViewModel)
                     }
                     composable(Navigation.PLAYER.toString()) {
                         Player(navController = navController, viewModel = audioViewModel)

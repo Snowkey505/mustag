@@ -1,4 +1,4 @@
-package com.example.mustag.ui.albums
+package com.example.mustag.ui.artists
 
 import android.graphics.BitmapFactory
 import android.util.Log
@@ -8,18 +8,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.windowInsetsEndWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -27,11 +25,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -50,95 +46,87 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.mustag.Navigation
 import com.example.mustag.data.local.model.AlbumInfo
-import com.example.mustag.data.local.model.Audio
+import com.example.mustag.data.local.model.ArtistInfo
+import com.example.mustag.ui.albums.AlbumsViewModel
 import com.example.mustag.ui.audio.AudioUIEvents
 import com.example.mustag.ui.audio.AudioUIState
 import com.example.mustag.ui.audio.AudioViewModel
 import com.example.mustag.ui.audio.BottomBarPlayer
-import com.example.mustag.ui.audio.MediaPlayerController
-import com.example.mustag.ui.audio.SongInfo
 
 @Composable
-fun AlbumItem(album: AlbumInfo, navController: NavController) {
-    Column(
+fun ArtistItem(artist: ArtistInfo, navController: NavController) {
+    Row(
         modifier = Modifier
             .padding(5.dp)
-            .fillMaxWidth()
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.clickable { navController.navigate("${Navigation.ALBUM}/${album.id}") }){
-            album.artwork?.let { artworkBytes ->
-                val bitmap = BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes.size)
-                val imageBitmap = bitmap.asImageBitmap()
+        artist.artwork?.let { artworkBytes ->
+            val bitmap = BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes.size)
+            val imageBitmap = bitmap.asImageBitmap()
 
-                Image(
-                    bitmap = imageBitmap,
-                    contentDescription = "Album Artwork",
-                    modifier = Modifier
-                        .fillMaxWidth(1f)
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentScale = ContentScale.FillBounds
-                )
-            } ?: Text(
-                text = "No Artwork",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(16.dp)
-            )
-
-            Text(
-                text = album.title,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            Image(
+                bitmap = imageBitmap,
+                contentDescription = "Album Artwork",
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .size(80.dp)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(40.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                contentScale = ContentScale.FillBounds
             )
-        }
+        } ?: Text(
+            text = "No Artwork",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .size(80.dp)
+                .padding(16.dp)
+        )
 
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item {
-                Text(
-                    text = album.artist,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Light,
-                )
-            }
-            item{
-                Text(
-                    text = album.songs_cnt.toString() + " " + songFormat(album.songs_cnt),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Light,
-                )
-            }
+        Spacer(modifier = Modifier.size(20.dp))
 
-        }
+        Text(
+            modifier = Modifier.weight(1f),
+            text = artist.name,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Spacer(modifier = Modifier.size(20.dp))
+
+        Text(
+            text = artist.albumsCnt.toString() + " " + albumFormat(artist.albumsCnt),
+            textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Light,
+        )
     }
 }
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlbumsScreen(
+fun ArtistsScreen(
     navController: NavController,
-    albumViewModel: AlbumsViewModel = hiltViewModel(),
+    artistsViewModel: ArtistsViewModel = hiltViewModel(),
     viewModel: AudioViewModel
 ) {
     val progress by viewModel.progress.collectAsState()
     val isAudioPlaying by viewModel.isPlaying.collectAsState()
     val audioList by viewModel.audioList.collectAsState()
     val currentPlayingAudio by viewModel.currentSelectedAudio.collectAsState()
-    val albumList by albumViewModel.albumList.collectAsState()
+    val artistList by artistsViewModel.artistsList.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = { TopPanel(navController) },
         bottomBar = {
             if (uiState == AudioUIState.Playing) {
-                Log.e("SYNC", "$isAudioPlaying, AUDIO = ${currentPlayingAudio.displayName}, $progress")
+                Log.e(
+                    "SYNC",
+                    "$isAudioPlaying, AUDIO = ${currentPlayingAudio.displayName}, $progress"
+                )
                 BottomBarPlayer(
                     progress = progress,
                     audio = currentPlayingAudio,
@@ -163,18 +151,17 @@ fun AlbumsScreen(
             }
         }
     ) { paddingValues ->
-        if (albumList.isEmpty()) {
+        if (artistList.isEmpty()) {
             Text(text = "", modifier = Modifier.fillMaxSize(), textAlign = TextAlign.Center)
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(5.dp),
                 modifier = Modifier
-                    .padding(paddingValues).padding(start = 5.dp, end = 5.dp)
+                    .padding(paddingValues)
+                    .padding(start = 5.dp, end = 5.dp)
             ) {
-                items(albumList) { album ->
-                    AlbumItem(album = album, navController = navController)
+                items(artistList) { artist ->
+                    ArtistItem(artist = artist, navController = navController)
                 }
             }
         }
@@ -207,37 +194,37 @@ private fun TopPanel(navController: NavController) {
         item {
             Box(
                 modifier = Modifier
-                    .background(color = Color.White, shape = RoundedCornerShape(10.dp))
+                    .background(color = Color.Gray, shape = RoundedCornerShape(10.dp))
                     .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+                    .clickable { navController.navigate(Navigation.ALBUMS.toString()) }
             ) {
                 Text(
                     text = "Альбомы",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.Black
+                    color = Color.White
                 )
             }
         }
         item {
             Box(
                 modifier = Modifier
-                    .background(color = Color.Gray, shape = RoundedCornerShape(10.dp))
+                    .background(color = Color.White, shape = RoundedCornerShape(10.dp))
                     .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
-                    .clickable { navController.navigate(Navigation.ARTISTS.toString()) }
             ) {
                 Text(
                     text = "Исполнители",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
+                    color = Color.Black
                 )
             }
         }
     }
 }
 
-fun songFormat(songsCnt: Int): String{
-    if ((songsCnt >= 5 && songsCnt <= 20) || (songsCnt % 10) >= 5 || (songsCnt % 10) == 0)
-        return "песен"
-    else if (songsCnt % 10 == 1)
-        return "песня"
-    return "песни"
+fun albumFormat(albumsCnt: Int): String {
+    if ((albumsCnt in 5..20) || (albumsCnt % 10) >= 5 || (albumsCnt % 10) == 0)
+        return "альбомов"
+    else if (albumsCnt % 10 == 1)
+        return "альбом"
+    return "альбома"
 }
